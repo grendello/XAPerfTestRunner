@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>xaptr</AssemblyName>
+    <Nullable>enable</Nullable>
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(OS)' == 'WindowsNT' ">
+	<Compile Remove="Unix/**" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(OS)' == 'Unix' ">
+	<Compile Remove="Windows/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Mono.Options" Version="6.6.0.161" />
+	<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+  </ItemGroup>
+</Project>
