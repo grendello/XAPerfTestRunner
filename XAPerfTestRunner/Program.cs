@@ -96,7 +96,7 @@ namespace XAPerfTestRunner
 				return false;
 
 			var report = new Report ();
-			string reportFile = report.Compare (Utilities.FirstOf (context.OutputDirectory, Constants.CompareResultsRelativePath), perfDataOne, perfDataTwo);
+			string reportFile = report.Compare (context, Utilities.FirstOf (context.OutputDirectory, Constants.CompareResultsRelativePath), perfDataOne, perfDataTwo);
 
 			return true;
 

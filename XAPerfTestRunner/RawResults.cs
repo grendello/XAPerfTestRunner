@@ -14,6 +14,7 @@ namespace XAPerfTestRunner
 		public XAVersionInfo XAVersion { get; private set; } = new XAVersionInfo ();
 		public string SessionLogPath { get; private set; } = String.Empty;
 		public uint RepetitionCount { get; private set; }
+		public string Configuration { get; private set; } = String.Empty;
 		public List<RunDefinition> Runs { get; } = new List<RunDefinition> ();
 
 		public static void Save (AndroidDeviceInfo adi, Project project)
@@ -30,6 +31,7 @@ namespace XAPerfTestRunner
 			using (var writer = XmlWriter.Create (outputFile, settings)) {
 				writer.WriteStartElement ("xptrRaw");
 				writer.WriteAttributeString ("ticksUTC", project.WhenUTC.Ticks.ToString ());
+				writer.WriteAttributeString ("configuration", project.Configuration);
 
 				writer.WriteStartElement ("device");
 				writer.WriteAttributeString ("model", adi.Model);
@@ -76,6 +78,7 @@ namespace XAPerfTestRunner
 
 			XmlElement root = doc.DocumentElement;
 			ret.DateUTC = ReadTimeStamp (path, root);
+			ret.Configuration = ReadConfiguration (path, root);
 			ret.AndroidDevice = ReadDeviceInfo (path, root.SelectSingleNode ("//device"));
 			ReadGitInfo (path, ret, root.SelectSingleNode ("//projectGitInfo"));
 			ret.XAVersion = ReadXamarinAndroidVersion (path, root.SelectSingleNode ("//xamarinAndroidVersion"));
@@ -84,7 +87,7 @@ namespace XAPerfTestRunner
 			XmlNode? runs = root.SelectSingleNode ("//runs");
 			ret.RepetitionCount = ReadRepetitions (path, runs);
 
-			foreach (XmlNode? runNode in runs.SelectNodes ("./runs")) {
+			foreach (XmlNode? runNode in runs.SelectNodes ("./run")) {
 				if (runNode == null)
 					continue;
 
@@ -170,6 +173,11 @@ namespace XAPerfTestRunner
 				architecture: Utilities.GetAttributeValue (node, "architecture"),
 				sdkVersion: Utilities.GetAttributeValue (node, "sdk")
 			);
+		}
+
+		static string ReadConfiguration (string path, XmlNode node)
+		{
+			return Utilities.GetAttributeValue (node, "configuration");
 		}
 
 		static DateTime ReadTimeStamp (string path, XmlNode node)
