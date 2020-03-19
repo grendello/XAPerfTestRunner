@@ -18,8 +18,8 @@ namespace XAPerfTestRunner
 		public const string ReportFileName = "results.md";
 		public const string ComparisonFileName = "compare-results.md";
 		public const string Unknown = "unknown";
-		public const string FasterIcon = "📈";
-		public const string SlowerIcon = "📉";
+		public const string FasterIcon = "🠅";
+		public const string SlowerIcon = "🠇";
 		public const string NoChangeIcon = "≡";
 		public const uint DefaultRepetitionCount = 10;
 		public const bool DefaultRunPerformanceTest = true;

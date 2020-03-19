@@ -64,7 +64,7 @@ namespace XAPerfTestRunner
 			LogTag = Constants.DefaultLogTag;
 			Summary = "Run with default application options";
 			Description = Summary;
-			Configuration = context.Configuration;
+			Configuration = Utilities.FirstOf (context.Configuration, Constants.DefaultConfiguration);
 			BuildCommand = context.BuildCommand;
 			PackageName = context.PackageName != null ? context.PackageName : String.Empty;
 			RunPerformanceTest = context.RunPerformanceTest.HasValue ? context.RunPerformanceTest.Value : Constants.DefaultRunPerformanceTest;

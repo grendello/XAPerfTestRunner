@@ -12,7 +12,7 @@ namespace XAPerfTestRunner
 		public uint? RepetitionCount { get; set; }
 		public string LogTag { get; set; } = String.Empty;
 		public string PackageName { get; set; } = String.Empty;
-		public string Configuration { get; set; } = Constants.DefaultConfiguration;
+		public string Configuration { get; set; } = String.Empty;
 		public string BuildCommand { get; set; } = Constants.DefaultBuildCommand;
 		public string ConfigFile { get; set; } = String.Empty;
 		public string OutputDirectory { get; set; } = String.Empty;

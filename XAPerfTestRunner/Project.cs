@@ -63,7 +63,7 @@ namespace XAPerfTestRunner
 			else
 				Description = "Android Project";
 
-			configuration = Utilities.FirstOf (projectConfig?.Configuration, context.Configuration, Constants.DefaultConfiguration);
+			configuration = Utilities.FirstOf (context.Configuration, projectConfig?.Configuration, Constants.DefaultConfiguration);
 			repetitionCount = Utilities.FirstOf (context.RepetitionCount, projectConfigRepetitions, Constants.DefaultRepetitionCount);
 			FullProjectFilePath = Path.GetFullPath (projectPath);
 			FullProjectDirPath = Path.GetDirectoryName (FullProjectFilePath)!;

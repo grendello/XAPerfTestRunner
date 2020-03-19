@@ -2,7 +2,7 @@ namespace XAPerfTestRunner
 {
 	class Context
 	{
-		public string Configuration { get; set; } = Constants.DefaultConfiguration;
+		public string? Configuration { get; set; }
 		public string BuildCommand { get; set; } = Constants.DefaultBuildCommand;
 		public string? OutputDirectory { get; set; }
 		public uint? RepetitionCount { get; set; }
