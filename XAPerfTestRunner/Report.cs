@@ -244,17 +244,18 @@ namespace XAPerfTestRunner
 			decimal percent;
 
 			if (changeDir < 0) {
-				percent = before / after;
+				percent = after / before;
 				changeIcon = Constants.FasterIcon;
 				changeSign = "-";
 			} else if (changeDir == 0) {
 				percent = 0m;
 				changeIcon = Constants.NoChangeIcon;
 			} else {
-				percent = after / before;
+				percent = before / after;
 				changeIcon = Constants.SlowerIcon;
 				changeSign = "+";
 			}
+			percent = 100 - (percent * 100);
 
 			return new ReportLineComparison {
 				Before = ToMilliseconds (before),
@@ -541,7 +542,7 @@ namespace XAPerfTestRunner
 
 		static string ToPercent (decimal percent)
 		{
-			string val = percent.ToString (".00");
+			string val = percent.ToString ("0.00");
 			return $"{val}%";
 		}
 	}
