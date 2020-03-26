@@ -273,7 +273,7 @@ namespace XAPerfTestRunner
 			var columns = new List<Column<ReportLineComparison>> {
 				new Column<ReportLineComparison> ("Before", rl => rl.Before),
 				new Column<ReportLineComparison> ("After", rl => rl.After),
-				new Column<ReportLineComparison> ("Change", rl => rl.Change),
+				new Column<ReportLineComparison> (Constants.DeltaIcon, rl => rl.Change),
 				new Column<ReportLineComparison> ("Notes", rl => rl.Notes),
 			};
 
