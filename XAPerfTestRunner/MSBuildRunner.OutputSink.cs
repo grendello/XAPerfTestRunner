@@ -3,7 +3,7 @@ using System.Text;
 
 namespace XAPerfTestRunner
 {
-	partial class MSBuildRunner
+	partial class MSBuildCommon
 	{
 		class OutputSink : ToolRunner.ToolOutputSink
 		{

@@ -30,6 +30,16 @@ namespace XAPerfTestRunner
 			return await RunAdb (runner);
 		}
 
+		public async Task<bool> Uninstall (string packageName)
+		{
+			var runner = CreateAdbRunner ();
+			runner
+				.AddArgument ("uninstall")
+				.AddQuotedArgument (packageName);
+
+			return await RunAdb (runner);
+		}
+
 		public async Task<bool> DumpLogcatToFile (string filePath)
 		{
 			var runner = CreateAdbRunner ();

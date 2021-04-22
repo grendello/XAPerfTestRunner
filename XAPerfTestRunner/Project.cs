@@ -29,10 +29,9 @@ namespace XAPerfTestRunner
 
 		public string FullProjectFilePath { get; }
 		public string FullProjectDirPath { get; }
+		public string FullDataDirectoryPath { get; }
 		public string FullBinDirPath { get; }
 		public string FullObjDirPath { get; }
-		public string FullAndroidManifestPath { get; }
-		public string FullDataDirectoryPath { get; }
 		public string? GitBranch => projectGitBranch;
 		public string? GitCommit => projectGitCommit;
 		public ProjectConfig? ProjectConfig { get; }
@@ -73,7 +72,6 @@ namespace XAPerfTestRunner
 
 			WhenUTC = DateTime.UtcNow;
 			runId = WhenUTC.ToString ("yyyy-MM-dd-HH:mm:ss");
-			FullAndroidManifestPath = Path.Combine (FullObjDirPath, configuration, Constants.AndroidManifestRelativePath);
 
 			if (!String.IsNullOrEmpty (projectConfig?.OutputDirectory)) {
 				FullDataDirectoryPath = projectConfig.OutputDirectory;
@@ -171,40 +169,104 @@ namespace XAPerfTestRunner
 			return sb.ToString ();
 		}
 
-		async Task<bool> BuildAndInstall (RunDefinition run)
+		BuildInfo FindFirstAndroidBuildInfo (Dictionary<string, BuildInfo> buildInfos)
+		{
+			if (buildInfos == null || buildInfos.Count == 0) {
+				throw new InvalidOperationException ($"Missing build info for project {FullProjectFilePath}. Does the project have the correct targets?");
+			}
+
+			BuildInfo? androidInfo = null;
+			foreach (var kvp in buildInfos) {
+				string tfm = kvp.Key;
+				BuildInfo info = kvp.Value;
+
+				if (String.Compare ("legacy", tfm, StringComparison.Ordinal) == 0) {
+					androidInfo = info;
+					break;
+				}
+
+				// Format: netX.Y-android
+				Match match = Utilities.AndroidTFM.Match (tfm);
+				if (!match.Success) {
+					continue;
+				}
+
+				androidInfo = info;
+				break;
+			}
+
+			if (androidInfo == null) {
+				throw new InvalidOperationException ($"Unable to find Android build info for project {FullProjectFilePath}. Does the project have the correct targets?");
+			}
+
+			return androidInfo;
+		}
+
+		async Task<(bool, BuildInfo?)> BuildAndInstall (RunDefinition run)
 		{
 			if (projectUsesGit && projectGitCommit == null) {
 				(projectGitCommit, projectGitBranch) = await GetCommitHashAndBranch (FullProjectDirPath);
 			}
 
+			string buildCommand = run.BuildCommand;
+			bool usesDotnet = String.Compare ("dotnet", Path.GetFileName (buildCommand), StringComparison.OrdinalIgnoreCase) == 0;
+
 			var args = new List<string> {
-				$"/v:quiet"
+				$"-v:quiet"
 			};
 			args.AddRange (run.Args);
 
-			var msbuild = new MSBuildRunner (context) {
-				WorkingDirectory = FullProjectDirPath,
-				EchoStandardOutput = true,
-				EchoStandardError = true,
-			};
-
 			string projectPath = Path.GetRelativePath (FullProjectDirPath, FullProjectFilePath);
 			string binlogBasePath = String.Empty;
+			MSBuildCommon builder;
+			BuildInfo buildInfo;
 
-			binlogBasePath = GetLogBasePath (Constants.MSBuildLogDir, "restore", run.LogTag, projectGitCommit, projectGitBranch);
-			if (!await msbuild.Run (projectPath, binlogBasePath, "Restore", configuration, args))
-				return false;
+			if (!usesDotnet) {
+				var msbuild = ConfigureRunner (new MSBuildRunner (context, buildCommand));
+				binlogBasePath = GetBinlogBasePath ("restore");
+				if (!await msbuild.Run (projectPath, binlogBasePath, "Restore", configuration, args)) {
+					return (false, null);
+				}
 
-			binlogBasePath = GetLogBasePath (Constants.MSBuildLogDir, "build", run.LogTag, projectGitCommit, projectGitBranch);
-			run.BinlogPath = Path.GetRelativePath (FullDataDirectoryPath, $"{binlogBasePath}.binlog");
-			if (!await msbuild.Run (projectPath, binlogBasePath, "Install", configuration, args))
-				return false;
+				binlogBasePath = GetBinlogBasePath ("build");
+				run.BinlogPath = GetRelativeBinlogPath (binlogBasePath);
+
+				if (!await msbuild.Run (projectPath, binlogBasePath, "SignAndroidPackage", configuration, args)) {
+					return (false, null);
+				}
+
+				buildInfo = FindFirstAndroidBuildInfo (await msbuild.GetBuildInfo (binlogBasePath));
+				await Uninstall (buildInfo);
+
+				binlogBasePath = GetBinlogBasePath ("install");
+				if (!await msbuild.Run (projectPath, binlogBasePath, "Install", configuration, args)) {
+					return (false, null);
+				}
+
+				builder = msbuild;
+			} else {
+				var dotnet = ConfigureRunner (new DotnetRunner (context, buildCommand));
+				binlogBasePath = GetBinlogBasePath ("build");
+				run.BinlogPath = GetRelativeBinlogPath (binlogBasePath);
+				if (!await dotnet.Build (projectPath, binlogBasePath, configuration, args)) {
+					return (false, null);
+				}
+
+				buildInfo = FindFirstAndroidBuildInfo (await dotnet.GetBuildInfo (binlogBasePath));
+				await Uninstall (buildInfo);
+				binlogBasePath = GetBinlogBasePath ("install");
+				if (!await dotnet.Install (projectPath, binlogBasePath, buildInfo.TargetFramework, configuration, args)) {
+					return (false, null);
+				}
+
+				builder = dotnet;
+			}
 
 			if (xaVersionNotDetectedYet) {
 				const string NotGit = "not a git build";
 
 				Log.InfoLine ("Retrieving Xamarin.Android version information");
-				xaVersion = await GetXAVersion (msbuild, binlogBasePath);
+				xaVersion = await GetXAVersion (builder, binlogBasePath);
 				Log.InfoLine ($"    Location: {xaVersion.RootDir}");
 				Log.InfoLine ($"     Version: {xaVersion.Version}");
 
@@ -215,10 +277,36 @@ namespace XAPerfTestRunner
 				xaVersionNotDetectedYet = false;
 			}
 
-			return true;
+			return (true, buildInfo);
+
+			async Task<bool> Uninstall (BuildInfo buildInfo)
+			{
+				(string packageName, _) = GetPackageAndMainActivityNames (buildInfo, run);
+
+				var adb = new AdbRunner (context);
+				return await adb.Uninstall (packageName);
+			}
+
+			T ConfigureRunner<T> (T runner) where T: MSBuildCommon
+			{
+				runner.WorkingDirectory = FullProjectDirPath;
+				runner.EchoStandardOutput = true;
+				runner.EchoStandardError = true;
+				return runner;
+			}
+
+			string GetBinlogBasePath (string phase)
+			{
+				return GetLogBasePath (Constants.MSBuildLogDir, phase, run.LogTag, projectGitCommit, projectGitBranch);
+			}
+
+			string GetRelativeBinlogPath (string binlogBasePath)
+			{
+				return Path.GetRelativePath (FullDataDirectoryPath, $"{binlogBasePath}.binlog");
+			}
 		}
 
-		async Task<XAVersionInfo> GetXAVersion (MSBuildRunner msbuild, string binlogBasePath)
+		async Task<XAVersionInfo> GetXAVersion (MSBuildCommon msbuild, string binlogBasePath)
 		{
 			var neededProperties = new HashSet<string> (StringComparer.Ordinal) {
 				"TargetFrameworkRootPath",
@@ -240,7 +328,7 @@ namespace XAPerfTestRunner
 				rootDir = "system";
 
 			string version = String.Empty;
-			if (!properties.TryGetValue("XamarinAndroidVersion", out propertyValue)) {
+			if (!properties.TryGetValue ("XamarinAndroidVersion", out propertyValue)) {
 				version = "unknown";
 			} else
 				version = propertyValue;
@@ -306,18 +394,31 @@ namespace XAPerfTestRunner
 			return true;
 		}
 
+		(string packageName, string activityName) GetPackageAndMainActivityNames (BuildInfo androidInfo, RunDefinition run)
+		{
+			string androidManifestPath = Path.Combine (FullProjectDirPath, androidInfo.ObjDir, "android", "AndroidManifest.xml");
+			return Utilities.GetPackageAndActivityName (
+				androidManifestPath,
+				Utilities.FirstOf (context.PackageName, run.PackageName, ProjectConfig?.PackageName)
+			);
+		}
+
 		async Task<bool> RunPerformanceTest (RunDefinition run, AdbRunner adb)
 		{
 			Log.MessageLine (run.Description);
 			Utilities.DeleteDirectorySilent (FullBinDirPath);
 			Utilities.DeleteDirectorySilent (FullObjDirPath);
-			if (!await BuildAndInstall (run))
-				return false;
 
-			(string packageName, string activityName) = Utilities.GetPackageAndActivityName (
-				FullAndroidManifestPath,
-				Utilities.FirstOf (context.PackageName, run.PackageName, ProjectConfig?.PackageName)
-			);
+			(bool success, BuildInfo? androidInfo) = await BuildAndInstall (run);
+			if (!success) {
+				return false;
+			}
+
+			if (androidInfo == null) {
+				throw new InvalidOperationException ($"Unable to find Android build info for project {FullProjectFilePath}. Does the project have the correct targets?");
+			}
+
+			(string packageName, string activityName) = GetPackageAndMainActivityNames (androidInfo, run);
 
 			for (uint i = 0; i < repetitionCount; i++) {
 				uint runNum = i + 1;

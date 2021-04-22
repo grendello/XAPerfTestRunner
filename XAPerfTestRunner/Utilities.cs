@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
 
@@ -14,6 +15,7 @@ namespace XAPerfTestRunner
 		static readonly List<string> ExecutableExtensions = new List<string> ();
 
 		public static readonly Encoding UTF8NoBOM = new UTF8Encoding (false);
+		public static readonly Regex AndroidTFM = new Regex ("^net\\d+\\.\\d+-android", RegexOptions.Compiled);
 
 		static Utilities ()
 		{
@@ -198,6 +200,7 @@ namespace XAPerfTestRunner
 			var nsmgr = new XmlNamespaceManager (doc.NameTable);
 			nsmgr.AddNamespace ("msbuild", "http://schemas.microsoft.com/developer/msbuild/2003");
 
+			// TODO: add support for `<TargetFrameworks>` etc
 			XmlNode guids = doc.DocumentElement.SelectSingleNode ("//msbuild:Project/msbuild:PropertyGroup/msbuild:ProjectTypeGuids", nsmgr);
 			if (guids == null)
 				return false;
