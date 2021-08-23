@@ -209,7 +209,7 @@ namespace XAPerfTestRunner
 			}
 
 			string buildCommand = run.BuildCommand;
-			bool usesDotnet = String.Compare ("dotnet", Path.GetFileName (buildCommand), StringComparison.OrdinalIgnoreCase) == 0;
+			bool usesDotnet = Path.GetFileName (buildCommand).StartsWith ("dotnet", StringComparison.OrdinalIgnoreCase);
 
 			var args = new List<string> {
 				$"-v:quiet"
@@ -344,6 +344,44 @@ namespace XAPerfTestRunner
 		public async Task<bool> Run ()
 		{
 			var adb = new AdbRunner (context);
+			(bool gotDebugMonoLogValue, string debugMonoLogValue) = await adb.GetPropertyValue ("debug.mono.log");
+			(bool gotWindowAnimationScaleValue, string windowAnimationScaleValue) = await adb.GetGlobalSettingValue ("window_animation_scale");
+			(bool gotTransitionAnimationScale, string transitionAnimationScaleValue) = await adb.GetGlobalSettingValue ("transition_animation_scale");
+			(bool gotAnimatorDurationScale, string animatorDurationScaleValue) = await adb.GetGlobalSettingValue ("animator_duration_scale");
+
+			try {
+				return await Run (adb);
+			} finally {
+				if (gotDebugMonoLogValue) {
+					await adb.SetPropertyValue ("debug.mono.log", debugMonoLogValue);
+				}
+
+				if (gotWindowAnimationScaleValue) {
+					await SetGlobalSetting (adb, "window_animation_scale", windowAnimationScaleValue);
+				}
+
+				if (gotTransitionAnimationScale) {
+					await SetGlobalSetting (adb, "transition_animation_scale", transitionAnimationScaleValue);
+				}
+
+				if (gotAnimatorDurationScale) {
+					await SetGlobalSetting (adb, "animator_duration_scale", animatorDurationScaleValue);
+				}
+			}
+		}
+
+		async Task<bool> SetGlobalSetting (AdbRunner adb, string settingName, string settingValue)
+		{
+			if (!await adb.SetGlobalSettingValue (settingName, settingValue)) {
+				Log.WarningLine ($"Failed to set global setting '{settingName}' value");
+				return false;
+			}
+
+			return true;
+		}
+
+		async Task<bool> Run (AdbRunner adb)
+		{
 			AndroidDeviceInfo? info = await adb.GetDeviceInfo ();
 			if (info == null) {
 				Log.FatalLine ("Failed to obtain Android device info");
@@ -358,6 +396,10 @@ namespace XAPerfTestRunner
 				Log.FatalLine ("Failed to set Mono debugging properties");
 				return false;
 			}
+
+			await SetGlobalSetting (adb, "window_animation_scale", "0");
+			await SetGlobalSetting (adb, "transition_animation_scale", "0");
+			await SetGlobalSetting (adb, "animator_duration_scale", "0");
 
 			if (!await adb.SetLogcatBufferSize ("16M")) {
 				Log.WarningLine ("Failed to set logcat buffer size");

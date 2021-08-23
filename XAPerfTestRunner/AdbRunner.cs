@@ -116,6 +116,50 @@ namespace XAPerfTestRunner
 			return await CaptureAdbOutput (runner);
 		}
 
+		public async Task<(bool success, string output)> GetPropertyValue (string propertyName)
+		{
+			var runner = CreateAdbRunner ();
+			return await GetPropertyValue (runner, propertyName);
+		}
+
+		ProcessRunner AddCommonSettingsArguments (ProcessRunner runner, string verb, string settingName, string settingNamespace)
+		{
+			runner
+				.AddArgument ("shell")
+				.AddArgument ("settings")
+				.AddArgument (verb)
+				.AddArgument (settingNamespace)
+				.AddArgument (settingName);
+
+			return runner;
+		}
+
+		public async Task<(bool success, string ouput)> GetSettingValue (string settingName, string settingNamespace)
+		{
+			var runner = CreateAdbRunner ();
+			return await CaptureAdbOutput (AddCommonSettingsArguments (runner, "get", settingName, settingNamespace));
+		}
+
+		public async Task<(bool success, string ouput)> GetGlobalSettingValue (string settingName)
+		{
+			return await GetSettingValue (settingName, "global");
+		}
+
+		public async Task<bool> SetSettingValue (string settingName, string settingValue, string settingNamespace)
+		{
+			var runner = CreateAdbRunner ();
+
+			AddCommonSettingsArguments (runner, "put", settingName, settingNamespace)
+				.AddQuotedArgument (settingValue);
+
+			return await RunAdb (runner);
+		}
+
+		public async Task<bool> SetGlobalSettingValue (string settingName, string settingValue)
+		{
+			return await SetSettingValue (settingName, settingValue, "global");
+		}
+
 		async Task<(bool success, string output)> CaptureAdbOutput (ProcessRunner runner, bool firstLineOnly = false)
 		{
 			string? outputLine = null;
