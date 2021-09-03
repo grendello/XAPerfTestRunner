@@ -18,6 +18,9 @@ namespace XAPerfTestRunner
 		public string RunManagedProfiler { get; private set; } = String.Empty;
 		public string RunNativeProfiler { get; private set; } = String.Empty;
 		public string Repetitions { get; private set; } = String.Empty;
+		public string PackagesDir { get; private set; } = String.Empty;
+		public bool ClearPackages { get; private set; } = true;
+
 		public List<ProjectConfigSingleRunDefinition> RunDefinitions { get; } = new List<ProjectConfigSingleRunDefinition> ();
 
 		public ProjectConfig (string path)
@@ -85,6 +88,18 @@ namespace XAPerfTestRunner
 			node = root.SelectSingleNode ("//runNativeProfiler");
 			if (node != null) {
 				RunNativeProfiler = node.InnerText;
+			}
+
+			node = root.SelectSingleNode ("//packagesDir");
+			if (node != null) {
+				PackagesDir = node.InnerText;
+				XmlNode? attr = node.Attributes.GetNamedItem ("clear");
+				if (attr != null) {
+					if (!Boolean.TryParse (attr.InnerText.Trim (), out bool clear)) {
+						throw new InvalidOperationException ($"Failed to parse the 'clear' attribute of tag '<packagesDir>' as boolean (value was '{attr.InnerText}')");
+					}
+					ClearPackages = clear;
+				}
 			}
 
 			XmlNodeList runs = doc.SelectNodes ("//runDefinitions/run");

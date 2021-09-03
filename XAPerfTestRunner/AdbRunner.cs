@@ -77,7 +77,11 @@ namespace XAPerfTestRunner
 			runner.AddArgument ("shell");
 			runner.AddArgument ("setprop");
 			runner.AddQuotedArgument (property);
-			runner.AddQuotedArgument (value);
+			if (String.IsNullOrEmpty (value)) {
+				runner.AddQuotedArgument ("''");
+			} else {
+				runner.AddQuotedArgument (value);
+			}
 
 			return await RunAdb (runner);
 		}

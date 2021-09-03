@@ -349,6 +349,20 @@ namespace XAPerfTestRunner
 			(bool gotTransitionAnimationScale, string transitionAnimationScaleValue) = await adb.GetGlobalSettingValue ("transition_animation_scale");
 			(bool gotAnimatorDurationScale, string animatorDurationScaleValue) = await adb.GetGlobalSettingValue ("animator_duration_scale");
 
+			if (ProjectConfig != null) {
+				string packagesDir = ProjectConfig.PackagesDir;
+				if (!String.IsNullOrEmpty (packagesDir)) {
+					if (!Path.IsPathRooted (packagesDir)) {
+						packagesDir = Path.Combine (Path.GetDirectoryName (ProjectConfig.ConfigFilePath)!, packagesDir);
+					}
+
+					if (Directory.Exists (packagesDir)) {
+						Log.InfoLine ($"Clearing NuGet packages cache: {packagesDir}");
+						Directory.Delete (packagesDir, true);
+					}
+				}
+			}
+
 			try {
 				return await Run (adb);
 			} finally {
