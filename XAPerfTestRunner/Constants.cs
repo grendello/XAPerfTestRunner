@@ -9,9 +9,11 @@ namespace XAPerfTestRunner
 		public const string DataRelativePath = "perfdata";
 		public const string CompareResultsRelativePath = ".";
 		public const string DefaultBuildCommand = "xabuild";
+
 		public const string LogFileName = "session.log";
 		public const string MSBuildLogDir = "build-logs";
 		public const string DeviceLogDir = "device-logs";
+		public const string ApkDir = "packages";
 		public const string ConfigFileName = ".xaptr.conf";
 		public const string RawResultsFileName = "raw-results.xml";
 		public const string DefaultLogTag = "default";

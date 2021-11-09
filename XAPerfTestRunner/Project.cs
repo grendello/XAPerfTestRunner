@@ -459,6 +459,18 @@ namespace XAPerfTestRunner
 			);
 		}
 
+		string SavePackage (BuildInfo androidInfo, string outputPath)
+		{
+			var package = Path.Combine (FullProjectDirPath, androidInfo.BinDir, androidInfo.PackageFilename);
+			Log.MessageLine ($"Checking for {package}");
+			if (!File.Exists (package))
+				return null;
+			Log.MessageLine ($"Backing up {package} to {outputPath}");
+			Directory.CreateDirectory (Path.GetDirectoryName (outputPath!)!);
+			File.Copy (package, outputPath);
+			return Path.GetRelativePath(FullDataDirectoryPath, outputPath);
+		}
+
 		async Task<bool> RunPerformanceTest (RunDefinition run, AdbRunner adb)
 		{
 			Log.MessageLine (run.Description);
@@ -475,6 +487,9 @@ namespace XAPerfTestRunner
 			}
 
 			(string packageName, string activityName) = GetPackageAndMainActivityNames (androidInfo, run);
+
+			string apkPath = GetLogBasePath (Constants.ApkDir, "package", $"{run.LogTag}{Path.GetExtension (androidInfo.PackageFilename)}", projectGitCommit, projectGitBranch);
+			run.PackagePath = SavePackage (androidInfo, apkPath);
 
 			for (uint i = 0; i < repetitionCount; i++) {
 				uint runNum = i + 1;
