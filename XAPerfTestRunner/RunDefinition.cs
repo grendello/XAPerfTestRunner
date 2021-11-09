@@ -19,6 +19,8 @@ namespace XAPerfTestRunner
 		public List<RunResults> Results { get; } = new List<RunResults> ();
 		public string? BinlogPath { get; set; }
 
+		public string? PackagePath { get; set; }
+
 		public RunDefinition (Context context, ProjectConfigSingleRunDefinition runDefinition, ProjectConfig projectConfig)
 		{
 			LogTag = Utilities.FirstOf (runDefinition.LogTag, Constants.DefaultLogTag);
@@ -102,6 +104,10 @@ namespace XAPerfTestRunner
 			writer.WriteStartElement ("buildLog");
 			writer.WriteAttributeString ("path", BinlogPath ?? String.Empty);
 			writer.WriteEndElement (); // </buildLog>
+
+			writer.WriteStartElement ("package");
+			writer.WriteAttributeString ("path", PackagePath ?? String.Empty);
+			writer.WriteEndElement (); // </package>
 
 			writer.WriteStartElement ("results");
 			foreach (RunResults results in Results) {

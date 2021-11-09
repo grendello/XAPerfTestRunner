@@ -16,6 +16,10 @@ namespace XAPerfTestRunner
 		const string OutputDir = "OutputDir";
 		const string OutputDirField = OutputDir + "=";
 
+		const string PackageFilename = "PackageFilename";
+
+		const string PackageFilenameField = PackageFilename + "=";
+
 		public List<string> StandardArguments { get; }
 		public string WorkingDirectory { get; set; } = String.Empty;
 
@@ -94,6 +98,7 @@ namespace XAPerfTestRunner
 			string? targetFramework = null;
 			string? objDir = null;
 			string? binDir = null;
+			string? packageFilename = null;
 
 			foreach (string field in info.Split (';', StringSplitOptions.RemoveEmptyEntries)) {
 				if (field.StartsWith (TargetFrameworkField, StringComparison.Ordinal)) {
@@ -110,13 +115,19 @@ namespace XAPerfTestRunner
 					binDir = field.Substring (OutputDirField.Length);
 					continue;
 				}
+
+				if (field.StartsWith (PackageFilenameField, StringComparison.Ordinal)) {
+					packageFilename = field.Substring (PackageFilenameField.Length);
+					continue;
+				}
 			}
 
 			ValidateField (targetFramework, TargetFramework);
 			ValidateField (objDir, ObjDir);
 			ValidateField (binDir, OutputDir);
+			ValidateField (packageFilename, PackageFilename);
 
-			return new BuildInfo (targetFramework!, objDir!, binDir!);
+			return new BuildInfo (targetFramework!, objDir!, binDir!, packageFilename!);
 
 			void ValidateField (string? fieldValue, string fieldName)
 			{

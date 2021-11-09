@@ -8,11 +8,14 @@ namespace XAPerfTestRunner
 		public string ObjDir { get; }
 		public string BinDir { get; }
 
-		public BuildInfo (string targetFramework, string objDir, string binDir)
+		public string PackageFilename { get; }
+
+		public BuildInfo (string targetFramework, string objDir, string binDir, string packageFilename)
 		{
 			TargetFramework = FixPathSeparators (targetFramework);
 			ObjDir = FixPathSeparators (objDir);
 			BinDir = FixPathSeparators (binDir);
+			PackageFilename = FixPathSeparators (packageFilename);
 		}
 
 		string FixPathSeparators (string path)
