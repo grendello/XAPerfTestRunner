@@ -27,9 +27,6 @@ namespace XAPerfTestRunner
 			AddArguments (runner, arguments);
 			runner.AddQuotedArgument (projectPath);
 
-			string message = GetLogMessage (runner);
-			Log.InfoLine (message);
-
 			return await RunMSBuild (runner);
 		}
 

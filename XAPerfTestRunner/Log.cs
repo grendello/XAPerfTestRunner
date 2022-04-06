@@ -20,38 +20,60 @@ namespace XAPerfTestRunner
 			}
 		}
 
-		public static void WriteLine (LogLevel level, string message)
+		public static void WriteLine (LogLevel level, string message, Color? color = null)
 		{
 			switch (level) {
 				case LogLevel.Fatal:
-					FatalLine (message);
+					FatalLine (message, color ?? Color.Fatal);
 					break;
 
 				case LogLevel.Error:
-					ErrorLine (message);
+					ErrorLine (message, color ?? Color.Error);
 					break;
 
 				case LogLevel.Warning:
-					WarningLine (message);
+					WarningLine (message, color ?? Color.Warning);
 					break;
 
 				case LogLevel.Info:
-					InfoLine (message);
+					InfoLine (message, color ?? Color.Info);
 					break;
 
 				case LogLevel.Message:
-					MessageLine (message);
+					MessageLine (message, color ?? Color.Message);
 					break;
 
 				case LogLevel.Debug:
-					DebugLine (message);
+					DebugLine (message, color ?? Color.Debug);
 					break;
 			}
 		}
 
-		public static void DebugLine (string message)
+		public static void BannerLine (string message, Color color = Color.Banner)
 		{
-			DoWrite (message, "D", logToFileOnly: true);
+			DoWrite (message, color);
+		}
+
+		public static void MessageLabeled (string labelName, string labelValue, Color nameColor = Color.Message, Color labelColor = Color.Accent)
+		{
+			Message ($"{labelName}: ", nameColor);
+			MessageLine (labelValue, labelColor);
+		}
+
+		public static void InfoLabeled (string labelName, string labelValue, Color nameColor = Color.Info, Color labelColor = Color.Accent)
+		{
+			Info ($"{labelName}: ", nameColor);
+			InfoLine (labelValue, labelColor);
+		}
+
+		public static void DebugLine (string message, Color color = Color.Debug)
+		{
+			DoWrite (message, color, logToFileOnly: true);
+		}
+
+		public static void Message (string message, Color color = Color.Message)
+		{
+			DoWrite (message, color, writeLine: false);
 		}
 
 		public static void MessageLine ()
@@ -59,42 +81,44 @@ namespace XAPerfTestRunner
 			MessageLine (String.Empty);
 		}
 
-		public static void MessageLine (string message)
+		public static void MessageLine (string message, Color color = Color.Message)
 		{
-			DoWrite (message);
+			DoWrite (message, color);
+		}
+
+		public static void Info (string message, Color color = Color.Info)
+		{
+			DoWrite (message, color, writeLine: false);
 		}
 
 		public static void InfoLine ()
 		{
-			DoWrite (String.Empty, String.Empty);
+			DoWrite (String.Empty);
 		}
 
-		public static void InfoLine (string message)
+		public static void InfoLine (string message, Color color = Color.Info)
 		{
-			DoWrite (message, "I");
+			DoWrite (message, color);
 		}
 
-		public static void WarningLine (string message)
+		public static void WarningLine (string message, Color color = Color.Warning)
 		{
-			DoWrite (message, "W");
+			DoWrite (message, color);
 		}
 
-		public static void ErrorLine (string message)
+		public static void ErrorLine (string message, Color color = Color.Error)
 		{
-			DoWrite (message, "E");
+			DoWrite (message, color);
 		}
 
-		public static void FatalLine (string message)
+		public static void FatalLine (string message, Color color = Color.Fatal)
 		{
-			DoWrite (message, "F");
+			DoWrite (message, color);
 			Environment.Exit (1);
 		}
 
-		static void DoWrite (string message, string? severity = null, bool writeLine = true, bool logToFileOnly = false)
+		static void DoWrite (string message, Color color = Color.Default, bool writeLine = true, bool logToFileOnly = false)
 		{
-			if (!String.IsNullOrEmpty (severity))
-				message = $"[{severity}] {message}";
-
 			lock (writeLock) {
 				if (logWriter != null) {
 					if (writeLine)
@@ -107,10 +131,16 @@ namespace XAPerfTestRunner
 						return;
 				}
 
-				if (writeLine)
-					Console.WriteLine (message);
-				else
-					Console.Write (message);
+				try {
+					ConsoleColors.Set (color);
+					if (writeLine) {
+						Console.WriteLine (message);
+					} else {
+						Console.Write (message);
+					}
+				} finally {
+					ConsoleColors.Reset ();
+				}
 			}
 		}
 

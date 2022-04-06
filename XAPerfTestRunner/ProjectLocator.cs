@@ -82,7 +82,7 @@ namespace XAPerfTestRunner
 		static string FindProject (string directory, ProjectConfig? configFile)
 		{
 			string? configuredProject = configFile?.ProjectFilePath;
-			Log.InfoLine ($"configuredProject == '{configuredProject}'");
+			Log.DebugLine ($"configuredProject == '{configuredProject}'");
 			if (!String.IsNullOrEmpty (configuredProject)) {
 				if (!Path.IsPathRooted (configuredProject)) {
 					configuredProject = Path.Combine (Path.GetDirectoryName (configFile!.ConfigFilePath)!, configuredProject);

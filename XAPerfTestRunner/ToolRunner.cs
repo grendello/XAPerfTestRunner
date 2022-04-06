@@ -62,6 +62,14 @@ namespace XAPerfTestRunner
 			return $"{message} ";
 		}
 
+		protected void LogCommandLine (ProcessRunner runner)
+		{
+			string message = GetLogMessage (runner);
+
+			Log.InfoLine ();
+			Log.InfoLine (message, Color.CommandLine);
+		}
+
 		protected void AddArguments (ProcessRunner runner, IEnumerable<string>? arguments)
 		{
 			if (arguments == null)

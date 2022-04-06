@@ -154,7 +154,12 @@ namespace XAPerfTestRunner
 			if (node == null)
 				return;
 
-			foreach (XmlNode? resultNode in node.SelectNodes ("./result")) {
+			XmlNodeList? nodes = node.SelectNodes ("./result");
+			if (nodes == null) {
+				return;
+			}
+
+			foreach (XmlNode? resultNode in nodes) {
 				if (resultNode == null)
 					continue;
 
@@ -196,7 +201,12 @@ namespace XAPerfTestRunner
 			if (node == null)
 				return;
 
-			foreach (XmlNode? argNode in node.SelectNodes ("./argument")) {
+			XmlNodeList? nodes = node.SelectNodes ("./argument");
+			if (nodes == null) {
+				return;
+			}
+
+			foreach (XmlNode? argNode in nodes) {
 				if (argNode == null)
 					continue;
 

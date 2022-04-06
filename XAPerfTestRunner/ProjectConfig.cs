@@ -31,14 +31,19 @@ namespace XAPerfTestRunner
 
 		void Load (string path)
 		{
-			Log.InfoLine ($"Loading config from {path}");
+			Log.MessageLabeled("Loading config from", path);
+
 			if (path.Length == 0)
 				throw new ArgumentException ("Must be a valid path to config file", nameof (path));
 
 			var doc = new XmlDocument ();
 			doc.Load (path);
 
-			XmlElement root = doc.DocumentElement;
+			XmlElement? root = doc.DocumentElement;
+			if (root == null) {
+				throw new InvalidOperationException ($"Missing root element in {path}");
+			}
+
 			XmlNode? node = root.SelectSingleNode ("//description");
 			if (node != null) {
 				Description = node.InnerText.Trim ();
@@ -93,7 +98,7 @@ namespace XAPerfTestRunner
 			node = root.SelectSingleNode ("//packagesDir");
 			if (node != null) {
 				PackagesDir = node.InnerText;
-				XmlNode? attr = node.Attributes.GetNamedItem ("clear");
+				XmlNode? attr = node.Attributes?.GetNamedItem ("clear");
 				if (attr != null) {
 					if (!Boolean.TryParse (attr.InnerText.Trim (), out bool clear)) {
 						throw new InvalidOperationException ($"Failed to parse the 'clear' attribute of tag '<packagesDir>' as boolean (value was '{attr.InnerText}')");
@@ -102,7 +107,7 @@ namespace XAPerfTestRunner
 				}
 			}
 
-			XmlNodeList runs = doc.SelectNodes ("//runDefinitions/run");
+			XmlNodeList? runs = doc.SelectNodes ("//runDefinitions/run");
 			if (runs == null)
 				return;
 

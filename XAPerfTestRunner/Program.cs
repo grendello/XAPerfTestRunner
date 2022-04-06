@@ -128,7 +128,8 @@ namespace XAPerfTestRunner
 
 			var project = new Project (context, xaProjectPath, locator.ProjectConfig);
 			Log.LogFilePath = Path.Combine (project.FullDataDirectoryPath, Constants.LogFileName);
-			Log.MessageLine ($"Using Xamarin.Android project: {project.FullProjectFilePath}");
+			Log.InfoLine ();
+			Log.InfoLabeled ("Using Xamarin.Android project", project.FullProjectFilePath);
 
 			bool result = await project.Run ();
 			if (!result) {
@@ -140,15 +141,16 @@ namespace XAPerfTestRunner
 			string reportPath = report.Generate (project);
 
 			Log.InfoLine ();
-			Log.InfoLine ($"Project: {project.FullProjectFilePath}");
-			Log.InfoLine ($"Configuration: {project.Configuration}");
-			Log.InfoLine ($"Output directory: {project.FullDataDirectoryPath}");
+			Log.InfoLabeled ("Project", project.FullProjectFilePath);
+			Log.InfoLabeled ("Configuration", project.Configuration);
+			Log.InfoLabeled ("Output directory", project.FullDataDirectoryPath);
 			if (!String.IsNullOrEmpty (reportPath)) {
-				Log.InfoLine ($"Results report: {reportPath}");
+				Log.InfoLabeled ("Results report", reportPath);
 				return true;
 			}
 
-			Log.InfoLine ("No results report generated");
+			Log.InfoLine ();
+			Log.WarningLine ("No results report generated");
 			return false;
 		}
 
@@ -165,7 +167,7 @@ namespace XAPerfTestRunner
 			throw new InvalidOperationException ($"Unknown boolean value: {value}");
 		}
 
-		static T ParseNumber<T> (string value, T defaultValue = default(T))
+		static T ParseNumber<T> (string value, T defaultValue = default(T)!)
 		{
 			switch (Type.GetTypeCode (typeof(T))) {
 				case TypeCode.UInt32:

@@ -14,6 +14,45 @@ namespace XAPerfTestRunner
 			: base(context, toolPath)
 		{}
 
+		public async Task<bool> Kill (string packageName)
+		{
+			var runner = CreateAdbRunner ();
+			runner.AddArgument ("shell");
+			runner.AddArgument ("am");
+			runner.AddArgument ("kill");
+			runner.AddArgument ("all");
+			runner.AddQuotedArgument (packageName);
+
+			return await RunAdb (runner);
+		}
+
+		public async Task<bool> ForceStop (string packageName)
+		{
+			var runner = CreateAdbRunner ();
+			runner.AddArgument ("shell");
+			runner.AddArgument ("am");
+			runner.AddArgument ("force-stop");
+			runner.AddArgument ("all");
+			runner.AddQuotedArgument (packageName);
+
+			return await RunAdb (runner);
+		}
+
+		public async Task<bool> CompileForSpeed (string packageName)
+		{
+			var runner = CreateAdbRunner ();
+			runner.AddArgument ("shell");
+			runner.AddArgument ("cmd");
+			runner.AddArgument ("package");
+			runner.AddArgument ("compile");
+			runner.AddArgument ("-m");
+			runner.AddArgument ("speed");
+			runner.AddArgument ("-f");
+			runner.AddQuotedArgument (packageName);
+
+			return await RunAdb (runner);
+		}
+
 		public async Task<bool> RunApp (string packageName, string activityName, bool waitForExit = true, bool killPreviousInstance = true)
 		{
 			var runner = CreateAdbRunner ();

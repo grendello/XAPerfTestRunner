@@ -24,7 +24,7 @@ namespace XAPerfTestRunner
 
 		void Load (XmlNode run)
 		{
-			XmlNode node = run.Attributes.GetNamedItem ("logTag");
+			XmlNode? node = run.Attributes?.GetNamedItem ("logTag");
 			if (node == null)
 				throw new InvalidOperationException ("The 'logTag' attribute missing from a '<run/>' element");
 
@@ -74,7 +74,7 @@ namespace XAPerfTestRunner
 				RunNativeProfiler = node.InnerText;
 			}
 
-			XmlNodeList properties = run.SelectNodes ("./property");
+			XmlNodeList? properties = run.SelectNodes ("./property");
 			if (properties == null || properties.Count == 0)
 				return;
 

@@ -22,9 +22,9 @@ namespace XAPerfTestRunner
 			InitOS ();
 		}
 
-		public static string GetAttributeValue (XmlNode node, string name, string defaultValue = Constants.Unknown)
+		public static string GetAttributeValue (XmlNode? node, string name, string defaultValue = Constants.Unknown)
 		{
-			XmlNode? attr = node.Attributes.GetNamedItem (name);
+			XmlNode? attr = node?.Attributes?.GetNamedItem (name);
 			if (String.IsNullOrEmpty (attr?.Value)) {
 				return defaultValue;
 			}
@@ -201,7 +201,7 @@ namespace XAPerfTestRunner
 			nsmgr.AddNamespace ("msbuild", "http://schemas.microsoft.com/developer/msbuild/2003");
 
 			// TODO: add support for `<TargetFrameworks>` etc
-			XmlNode guids = doc.DocumentElement.SelectSingleNode ("//msbuild:Project/msbuild:PropertyGroup/msbuild:ProjectTypeGuids", nsmgr);
+			XmlNode? guids = doc.DocumentElement?.SelectSingleNode ("//msbuild:Project/msbuild:PropertyGroup/msbuild:ProjectTypeGuids", nsmgr);
 			if (guids == null)
 				return false;
 
@@ -226,8 +226,8 @@ namespace XAPerfTestRunner
 			var nsmgr = new XmlNamespaceManager (doc.NameTable);
 			nsmgr.AddNamespace ("android", "http://schemas.android.com/apk/res/android");
 
-			XmlNode node = doc.DocumentElement.SelectSingleNode ("//manifest", nsmgr);
-			if (node.Attributes == null) {
+			XmlNode? node = doc.DocumentElement?.SelectSingleNode ("//manifest", nsmgr);
+			if (node?.Attributes == null) {
 				Log.WarningLine ($"'manifest' element not found in {manifestPath}");
 				goto returnNada;
 			}
@@ -243,7 +243,12 @@ namespace XAPerfTestRunner
 				packageName = userPackageName;
 
 			string activityName = String.Empty;
-			XmlNodeList nodes = doc.DocumentElement.SelectNodes ("//manifest/application/activity[@android:name]", nsmgr);
+			XmlNodeList? nodes = doc.DocumentElement?.SelectNodes ("//manifest/application/activity[@android:name]", nsmgr);
+			if (nodes == null) {
+				Log.WarningLine ($"No named activity nodes in {manifestPath}");
+				goto returnNada;
+			}
+
 			foreach (XmlNode? activity in nodes) {
 				if (activity == null)
 					continue;

@@ -265,15 +265,15 @@ namespace XAPerfTestRunner
 			if (xaVersionNotDetectedYet) {
 				const string NotGit = "not a git build";
 
-				Log.InfoLine ("Retrieving Xamarin.Android version information");
+				Log.BannerLine ("Retrieving Xamarin.Android version information");
 				xaVersion = await GetXAVersion (builder, binlogBasePath);
-				Log.InfoLine ($"    Location: {xaVersion.RootDir}");
-				Log.InfoLine ($"     Version: {xaVersion.Version}");
+				Log.InfoLabeled ("    Location", xaVersion.RootDir);
+				Log.InfoLabeled ("     Version", xaVersion.Version);
 
 				string hash = String.IsNullOrEmpty (xaVersion.Commit) ? NotGit : xaVersion.Commit;
 				string branch = String.IsNullOrEmpty (xaVersion.Commit) ? NotGit : xaVersion.Branch;
-				Log.InfoLine ($"  Git branch: {branch}");
-				Log.InfoLine ($"  Git commit: {hash}");
+				Log.InfoLabeled ("  Git branch", branch);
+				Log.InfoLabeled ("  Git commit", hash);
 				xaVersionNotDetectedYet = false;
 			}
 
@@ -402,9 +402,9 @@ namespace XAPerfTestRunner
 				return false;
 			}
 			adi = info;
-			Log.InfoLine ($"Device: {adi.Model}");
-			Log.InfoLine ($"Device architecture: {adi.Architecture}");
-			Log.InfoLine ($"Device SDK: {adi.SdkVersion}");
+			Log.InfoLabeled ("Device", adi.Model);
+			Log.InfoLabeled ("Device architecture", adi.Architecture);
+			Log.InfoLabeled ("Device SDK", adi.SdkVersion);
 
 			if (!await adb.SetPropertyValue ("debug.mono.log", "default,timing=bare")) {
 				Log.FatalLine ("Failed to set Mono debugging properties");
@@ -459,12 +459,14 @@ namespace XAPerfTestRunner
 			);
 		}
 
-		string SavePackage (BuildInfo androidInfo, string outputPath)
+		string? SavePackage (BuildInfo androidInfo, string outputPath)
 		{
 			var package = Path.Combine (FullProjectDirPath, androidInfo.BinDir, androidInfo.PackageFilename);
-			Log.MessageLine ($"Checking for {package}");
-			if (!File.Exists (package))
+			Log.DebugLine ($"Checking for {package}");
+			if (!File.Exists (package)) {
 				return null;
+			}
+
 			Log.MessageLine ($"Backing up {package} to {outputPath}");
 			Directory.CreateDirectory (Path.GetDirectoryName (outputPath!)!);
 			File.Copy (package, outputPath);
@@ -473,7 +475,9 @@ namespace XAPerfTestRunner
 
 		async Task<bool> RunPerformanceTest (RunDefinition run, AdbRunner adb)
 		{
-			Log.MessageLine (run.Description);
+			Log.MessageLine ();
+			Log.BannerLine (run.Description);
+
 			Utilities.DeleteDirectorySilent (FullBinDirPath);
 			Utilities.DeleteDirectorySilent (FullObjDirPath);
 
@@ -488,28 +492,45 @@ namespace XAPerfTestRunner
 
 			(string packageName, string activityName) = GetPackageAndMainActivityNames (androidInfo, run);
 
+			Log.InfoLine ();
+			Log.InfoLine ($"[{run.Summary}] precompiling Java bits of the application");
+			if (!await adb.CompileForSpeed (packageName)) {
+				Log.WarningLine ("Precompilation failed, continuing regardless");
+			}
+
 			string apkPath = GetLogBasePath (Constants.ApkDir, "package", $"{run.LogTag}{Path.GetExtension (androidInfo.PackageFilename)}", projectGitCommit, projectGitBranch);
 			run.PackagePath = SavePackage (androidInfo, apkPath);
 
 			for (uint i = 0; i < repetitionCount; i++) {
 				uint runNum = i + 1;
-				Log.InfoLine ($"[{run.Summary}] run {runNum} of {repetitionCount}");
+				Log.InfoLine ($"  run {runNum} of {repetitionCount}");
 				if (!await adb.ClearLogcat ()) {
 					Log.WarningLine ("Failed to clear logcat buffer");
 				}
 
-				Log.InfoLine ($"[{run.Summary}] running application");
+				Log.MessageLine ($"    running application");
 				if (!await adb.RunApp (packageName, activityName)) {
 					Log.FatalLine ($"[{run.Summary}] application failed");
 					return false;
 				}
 
-				Log.InfoLine ($"[{run.Summary}] recording statistics");
+				Log.MessageLine ($"    pausing for {Constants.PauseBetweenRunsMS}ms");
+				Thread.Sleep (Constants.PauseBetweenRunsMS);
+
+				Log.MessageLine ($"    recording statistics");
 				string logcatPath = GetLogBasePath (Constants.DeviceLogDir, "logcat", $"{run.LogTag}-{runNum:000}.txt", projectGitCommit, projectGitBranch);
 				await adb.DumpLogcatToFile (logcatPath);
 				run.Results.Add (GetPerfDataFromLogcat (run, logcatPath, packageName, activityName));
-				Log.InfoLine ($"[{run.Summary}] pausing for {Constants.PauseBetweenRunsMS}ms");
-				Thread.Sleep (Constants.PauseBetweenRunsMS);
+
+				Log.MessageLine ($"    forcibly stopping application");
+				if (!await adb.ForceStop (packageName)) {
+					Log.WarningLine ("Failed to forcibly stop application");
+				}
+
+				Log.MessageLine ($"    killing all app's background processes");
+				if (!await adb.Kill (packageName)) {
+					Log.WarningLine ("Failed to kill background processes");
+				}
 			}
 			Log.MessageLine ();
 

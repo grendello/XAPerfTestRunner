@@ -17,7 +17,6 @@ namespace XAPerfTestRunner
 		const string OutputDirField = OutputDir + "=";
 
 		const string PackageFilename = "PackageFilename";
-
 		const string PackageFilenameField = PackageFilename + "=";
 
 		public List<string> StandardArguments { get; }
@@ -189,6 +188,7 @@ namespace XAPerfTestRunner
 
 		protected async Task<bool> RunMSBuild (ProcessRunner runner, bool setupOutputSink = true, bool ignoreStderr = true)
 		{
+			LogCommandLine (runner);
 			return await RunTool (
 				() => {
 					OutputSink? sink = null;

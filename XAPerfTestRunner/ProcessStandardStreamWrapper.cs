@@ -33,26 +33,36 @@ namespace XAPerfTestRunner
 		    DoWrite (value ?? String.Empty);
 	    }
 
-	    protected virtual string PreprocessMessage (string message)
+	    protected virtual (string message, Color color) PreprocessMessage (string message)
 	    {
 		    string severity = CustomSeverityName;
 		    if (LoggingLevel != LogLevel.Message && String.IsNullOrEmpty (severity))
 			    severity = LoggingLevel.ToString ();
 
-		    if (!String.IsNullOrEmpty (severity))
-			    return $"[{severity}] {message}";
+		    if (!String.IsNullOrEmpty (severity)) {
+			    Color color;
 
-		    return message;
+			    if (String.Compare (severity, "stderr", StringComparison.Ordinal) == 0) {
+				    color = Color.ProgramStderr;
+			    } else {
+				    color = Color.ProgramStdout;
+			    }
+
+			    return ($"[{severity}] {message}", color);
+		    }
+
+		    return (message, Color.ProgramStdout);
 	    }
 
 	    void DoWrite (string message)
 	    {
-		    message = PreprocessMessage (message) ?? String.Empty;
+		    Color color;
+		    (message, color) = PreprocessMessage (message);
 
 		    if (IndentOutput)
-			    Log.WriteLine (LoggingLevel, $"{IndentString}{message}");
+			    Log.WriteLine (LoggingLevel, $"{IndentString}{message}", color);
 		    else
-			    Log.WriteLine (LoggingLevel, message);
+			    Log.WriteLine (LoggingLevel, message, color);
 	    }
     }
 }

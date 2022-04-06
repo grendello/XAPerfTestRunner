@@ -76,7 +76,11 @@ namespace XAPerfTestRunner
 			var doc = new XmlDocument ();
 			doc.Load (path);
 
-			XmlElement root = doc.DocumentElement;
+			XmlElement? root = doc.DocumentElement;
+			if (root == null) {
+				throw new InvalidOperationException ($"No document root element in {path}");
+			}
+
 			ret.DateUTC = ReadTimeStamp (path, root);
 			ret.Configuration = ReadConfiguration (path, root);
 			ret.AndroidDevice = ReadDeviceInfo (path, root.SelectSingleNode ("//device"));
@@ -85,9 +89,18 @@ namespace XAPerfTestRunner
 			ret.SessionLogPath = ReadSessionLogPath (path, root.SelectSingleNode ("//sessionLog"));
 
 			XmlNode? runs = root.SelectSingleNode ("//runs");
+			if (runs == null) {
+				throw new InvalidOperationException ($"Missing runs in {path}");
+			}
+
 			ret.RepetitionCount = ReadRepetitions (path, runs);
 
-			foreach (XmlNode? runNode in runs.SelectNodes ("./run")) {
+			XmlNodeList? nodes = runs.SelectNodes ("./run");
+			if (nodes == null) {
+				throw new InvalidOperationException ($"<runs> element without <run> nodes in {path}");
+			}
+
+			foreach (XmlNode? runNode in nodes) {
 				if (runNode == null)
 					continue;
 
@@ -175,12 +188,12 @@ namespace XAPerfTestRunner
 			);
 		}
 
-		static string ReadConfiguration (string path, XmlNode node)
+		static string ReadConfiguration (string path, XmlNode? node)
 		{
 			return Utilities.GetAttributeValue (node, "configuration");
 		}
 
-		static DateTime ReadTimeStamp (string path, XmlNode node)
+		static DateTime ReadTimeStamp (string path, XmlNode? node)
 		{
 			string ticksValue = Utilities.GetAttributeValue (node, "ticksUTC", String.Empty);
 			if (String.IsNullOrEmpty (ticksValue)) {
