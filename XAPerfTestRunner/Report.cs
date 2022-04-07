@@ -25,6 +25,7 @@ namespace XAPerfTestRunner
 			public string Before = String.Empty;
 			public string After = String.Empty;
 			public string Change = String.Empty;
+			public decimal PerCent;
 		}
 
 		sealed class Column<T> where T: ReportLine
@@ -191,6 +192,18 @@ namespace XAPerfTestRunner
 				}
 			}
 
+			displayedLinesAll.Sort (ComparePercentages);
+			displayedLinesNoOutliers.Sort (ComparePercentages);
+			displayedLinesNoSlowest.Sort (ComparePercentages);
+
+			nativeToManagedLinesAll.Sort (ComparePercentages);
+			nativeToManagedLinesNoOutliers.Sort (ComparePercentages);
+			nativeToManagedLinesNoSlowest.Sort (ComparePercentages);
+
+			totalInitLinesAll.Sort (ComparePercentages);
+			totalInitLinesNoOutliers.Sort (ComparePercentages);
+			totalInitLinesNoSlowest.Sort (ComparePercentages);
+
 			string reportFile = Path.Combine (resultsDir, Constants.ComparisonFileName);
 			using (var sw = new StreamWriter (reportFile, false, Utilities.UTF8NoBOM)) {
 				sw.WriteLine ("# Reports");
@@ -213,19 +226,19 @@ namespace XAPerfTestRunner
 				}
 
 				sw.WriteLine ();
-				sw.WriteLine ("## Displayed");
+				WriteHeading (sw, "Displayed");
 				WriteComparison (sw, "All runs", displayedLinesAll);
 				WriteComparison (sw, "Without slowest and fastest runs", displayedLinesNoOutliers);
 				WriteComparison (sw, "Without the slowest runs", displayedLinesNoSlowest);
 
 				sw.WriteLine ();
-				sw.WriteLine ("## Native to managed");
+				WriteHeading (sw, "Native to managed");
 				WriteComparison (sw, "All runs", nativeToManagedLinesAll);
 				WriteComparison (sw, "Without slowest and fastest runs", nativeToManagedLinesNoOutliers);
 				WriteComparison (sw, "Without the slowest runs", nativeToManagedLinesNoSlowest);
 
 				sw.WriteLine ();
-				sw.WriteLine ("## Total init");
+				WriteHeading (sw, "Total init");
 				WriteComparison (sw, "All runs", totalInitLinesAll);
 				WriteComparison (sw, "Without slowest and fastest runs", totalInitLinesNoOutliers);
 				WriteComparison (sw, "Without the slowest runs", totalInitLinesNoSlowest);
@@ -234,6 +247,13 @@ namespace XAPerfTestRunner
 			}
 
 			return reportFile;
+
+			void WriteHeading (StreamWriter sw, string title)
+			{
+				sw.WriteLine ($"## {title} (milliseconds, sorted on {Constants.DeltaIcon})");
+			}
+
+			int ComparePercentages (ReportLineComparison a, ReportLineComparison b) => b.PerCent.CompareTo (a.PerCent);
 		}
 
 		ReportLineComparison CreateComparisonLine (decimal before, decimal after, string notes)
@@ -243,25 +263,33 @@ namespace XAPerfTestRunner
 			string changeIcon = String.Empty;
 			decimal percent;
 
+			// This affects the further sorting. Since we want to promote speed ups, we reverse the sort in that the
+			// lowest negative values are sorted first with the highest positive ones sorted last.
+			decimal deltaDir;
+
 			if (changeDir < 0) {
 				percent = after / before;
 				changeIcon = Constants.FasterIcon;
 				changeSign = "-";
+				deltaDir = 1.0m;
 			} else if (changeDir == 0) {
-				percent = 0m;
+				percent = 0.0m;
 				changeIcon = Constants.NoChangeIcon;
+				deltaDir = -1.0m;
 			} else {
 				percent = before / after;
 				changeIcon = Constants.SlowerIcon;
 				changeSign = "+";
+				deltaDir = -1.0m;
 			}
-			percent = 100 - (percent * 100);
+			percent = 100.0m - (percent * 100.0m);
 
 			return new ReportLineComparison {
 				Before = ToMilliseconds (before),
 				After = ToMilliseconds (after),
 				Change = $"{changeSign}{ToPercent (percent)} {changeIcon}",
-				Notes = notes
+				Notes = notes,
+				PerCent = deltaDir * percent,
 			};
 		}
 
