@@ -212,8 +212,12 @@ namespace XAPerfTestRunner
 			bool usesDotnet = Path.GetFileName (buildCommand).StartsWith ("dotnet", StringComparison.OrdinalIgnoreCase);
 
 			var args = new List<string> {
-				$"-v:quiet"
+				"-v:quiet"
 			};
+			if (context.UseFastTiming) {
+				args.Add ("-p:_AndroidFastTiming=true");
+			}
+
 			args.AddRange (run.Args);
 
 			string projectPath = Path.GetRelativePath (FullProjectDirPath, FullProjectFilePath);
