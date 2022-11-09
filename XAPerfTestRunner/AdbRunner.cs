@@ -14,6 +14,19 @@ namespace XAPerfTestRunner
 			: base(context, toolPath)
 		{}
 
+		public async Task<bool> SendBroadcastIntent (string packageName, string action)
+		{
+			var runner = CreateAdbRunner ();
+			runner.AddArgument ("shell");
+			runner.AddArgument ("am");
+			runner.AddArgument ("broadcast");
+			runner.AddArgument ("-a");
+			runner.AddQuotedArgument (action);
+			runner.AddQuotedArgument (packageName);
+
+			return await RunAdb (runner);
+		}
+
 		public async Task<bool> Kill (string packageName)
 		{
 			var runner = CreateAdbRunner ();

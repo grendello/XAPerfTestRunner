@@ -24,6 +24,7 @@ namespace XAPerfTestRunner
 				{"m|profile-managed", $"Profile managed portion of the app (default: {parsedOptions.RunManagedProfiler})", v => parsedOptions.RunManagedProfiler = v == null ? false : true},
 				{"n|profile-native", $"Profile native portion of the app (default: {parsedOptions.RunNativeProfiler})", v => parsedOptions.RunNativeProfiler = v == null ? false : true},
 				{"r|runs=", $"Number of runs for the performance test (default: {parsedOptions.RepetitionCount})", v => parsedOptions.RepetitionCount = ParseNumber (v, parsedOptions.RepetitionCount)},
+				{"f|fast-timing", $"Enable fast timing mode in Xamarin.Android, requires [commit hash here]", v => parsedOptions.UseFastTiming = v == null ? false : true},
 				"",
 				{"a|app=", "Use the specified Android app id/package name (default is to autodetect)", v => parsedOptions.PackageName = v},
 				{"c|configuration=", $"Build application in the specified CONFIGURATION (default: {parsedOptions.Configuration})", v => parsedOptions.Configuration = v ?? parsedOptions.Configuration},
@@ -119,6 +120,7 @@ namespace XAPerfTestRunner
 
 		static async Task<bool> RunPerfTests (Context context, ParsedOptions parsedOptions, List<string> rest)
 		{
+			context.UseFastTiming = parsedOptions.UseFastTiming;
 			var locator = new ProjectLocator (parsedOptions, rest);
 			string xaProjectPath = locator.ProjectPaths.Count == 0 ? String.Empty : locator.ProjectPaths [0];
 			if (String.IsNullOrEmpty (xaProjectPath)) {

@@ -310,6 +310,7 @@ namespace XAPerfTestRunner
 		{
 			var neededProperties = new HashSet<string> (StringComparer.Ordinal) {
 				"TargetFrameworkRootPath",
+				"XamarinAnalysisTargetsFile",
 				"XamarinAndroidVersion",
 			};
 
@@ -318,14 +319,20 @@ namespace XAPerfTestRunner
 			string rootDir = String.Empty;
 			string branch = String.Empty;
 			string commit = String.Empty;
+			string gitRoot = String.Empty;
+
 			if (properties.TryGetValue ("TargetFrameworkRootPath", out propertyValue) && !String.IsNullOrEmpty (propertyValue)) {
-				string gitRoot = String.Empty;
-				if (UsesGit (propertyValue, ref gitRoot)) {
-					(commit, branch) = await GetCommitHashAndBranch (propertyValue);
-					rootDir = gitRoot;
+				await GetGitInfo (propertyValue);
+			} else if (properties.TryGetValue ("XamarinAnalysisTargetsFile", out propertyValue) && !String.IsNullOrEmpty (propertyValue)) {
+				string toolsDir = Path.GetDirectoryName (propertyValue) ?? String.Empty;
+				if (!await GetGitInfo (toolsDir)) {
+					TryGetInfoFromNuget (toolsDir);
 				}
-			} else
+			}
+
+			if (String.IsNullOrEmpty (rootDir)) {
 				rootDir = "system";
+			}
 
 			string version = String.Empty;
 			if (!properties.TryGetValue ("XamarinAndroidVersion", out propertyValue)) {
@@ -339,6 +346,39 @@ namespace XAPerfTestRunner
 				commit,
 				rootDir
 			);
+
+			async Task<bool> GetGitInfo (string dir)
+			{
+				if (!UsesGit (dir, ref gitRoot)) {
+					return false;
+				}
+
+				(commit, branch) = await GetCommitHashAndBranch (propertyValue);
+				rootDir = gitRoot;
+				return true;
+			}
+
+			void TryGetInfoFromNuget (string dir)
+			{
+				string versionCommitPath = Path.Combine (dir, "Version.commit");
+				if (!File.Exists (versionCommitPath)) {
+					return;
+				}
+
+				rootDir = "nuget";
+				string[] lines = File.ReadAllLines (versionCommitPath);
+				if (lines.Length == 0) {
+					return;
+				}
+
+				string[] parts = lines[0].Trim ().Split ('/', StringSplitOptions.RemoveEmptyEntries);
+				if (parts.Length < 3) {
+					return;
+				}
+
+				branch = parts[1];
+				commit = parts[2];
+			}
 		}
 
 		public async Task<bool> Run ()
@@ -406,7 +446,8 @@ namespace XAPerfTestRunner
 			Log.InfoLabeled ("Device architecture", adi.Architecture);
 			Log.InfoLabeled ("Device SDK", adi.SdkVersion);
 
-			if (!await adb.SetPropertyValue ("debug.mono.log", "default,timing=bare")) {
+			string timingMode = context.UseFastTiming ? "fast-bare" : "bare";
+			if (!await adb.SetPropertyValue ("debug.mono.log", $"default,timing={timingMode}")) {
 				Log.FatalLine ("Failed to set Mono debugging properties");
 				return false;
 			}
@@ -512,6 +553,13 @@ namespace XAPerfTestRunner
 				if (!await adb.RunApp (packageName, activityName)) {
 					Log.FatalLine ($"[{run.Summary}] application failed");
 					return false;
+				}
+
+				if (context.UseFastTiming) {
+					Log.MessageLine ($"    asking Xamarin.Android to dump timing data");
+					if (!await adb.SendBroadcastIntent (packageName, "mono.android.app.DUMP_TIMING_DATA")) {
+						Log.WarningLine ("Failed to send timing dump broadcast");
+					}
 				}
 
 				Log.MessageLine ($"    pausing for {Constants.PauseBetweenRunsMS}ms");

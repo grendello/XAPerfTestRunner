@@ -6,6 +6,7 @@ namespace XAPerfTestRunner
 	{
 		public bool ShowHelp { get; set; }
 		public bool Compare { get; set; }
+		public bool UseFastTiming { get; set; }
 		public bool? RunPerfTest { get; set; }
 		public bool? RunManagedProfiler { get; set; }
 		public bool? RunNativeProfiler { get; set; }
