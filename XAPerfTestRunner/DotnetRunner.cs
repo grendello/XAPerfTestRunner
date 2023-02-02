@@ -48,6 +48,22 @@ namespace XAPerfTestRunner
 			return await RunMSBuild (runner);
 		}
 
+		public async Task<bool> Clean (string projectPath, string logBasePath, string? configuration, List<string>? arguments = null)
+		{
+			ProcessRunner runner = CreateMSBuildRunner (forBinlog: false);
+			string cfg = Utilities.FirstOf (configuration, Context.Configuration, Constants.DefaultConfiguration);
+			runner
+				.AddArgument ("clean")
+				.AddArgument ("--configuration")
+				.AddQuotedArgument (cfg)
+				.AddQuotedArgument ($"/bl:{logBasePath}.binlog");
+
+			AddArguments (runner, arguments);
+			runner.AddQuotedArgument (projectPath);
+
+			return await RunMSBuild (runner);
+		}
+
 		protected override ProcessRunner CreateMSBuildRunner (bool forBinlog)
 		{
 			ProcessRunner runner = CreateProcessRunner ();

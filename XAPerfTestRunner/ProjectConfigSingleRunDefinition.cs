@@ -15,6 +15,7 @@ namespace XAPerfTestRunner
 		public string RunPerformanceTest { get; private set; } = String.Empty;
 		public string RunManagedProfiler { get; private set; } = String.Empty;
 		public string RunNativeProfiler { get; private set; } = String.Empty;
+		public string RunBuildAndInstallProfiler { get; private set;} = String.Empty;
 		public List<string> Properties { get; } = new List<string> ();
 
 		public ProjectConfigSingleRunDefinition (XmlNode node)
@@ -72,6 +73,11 @@ namespace XAPerfTestRunner
 			node = run.SelectSingleNode ("./runNativeProfiler");
 			if (node != null) {
 				RunNativeProfiler = node.InnerText;
+			}
+
+			node = run.SelectSingleNode ("./runBuildAndInstallProfiler");
+			if (node != null) {
+				RunBuildAndInstallProfiler = node.InnerText;
 			}
 
 			XmlNodeList? properties = run.SelectNodes ("./property");
