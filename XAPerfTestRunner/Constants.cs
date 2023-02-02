@@ -25,7 +25,6 @@ namespace XAPerfTestRunner
 		public const string NoChangeIcon = " ";
 		public const string DeltaIcon = "Δ";
 		public const uint DefaultRepetitionCount = 10;
-		public const uint DefaultBuildAndInstallRepetitionCount = 10;
 		public const bool DefaultRunPerformanceTest = true;
 		public const bool DefaultRunManagedProfiler = false;
 		public const bool DefaultRunNativeProfiler = false;
