@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xaptr>
+  <description>[NAME YOUR APP HERE]</description>
+  <projectFilePath>[PUT PATH TO THE CSPROJ FILE HERE]</projectFilePath>
+  <buildCommand>dotnet</buildCommand> <!-- it can be a path to script which runs your local XA build's copy of dotnet, but it must contain the word 'dotnet' -->
+  <configuration>Release</configuration>
+  <repetitions>10</repetitions>
+  <packagesDir clear="true">./packages</packagesDir>
+  <runDefinitions>
+    <run logTag="armeabi-v7a_preload">
+      <summary>preload enabled; 32-bit build</summary>
+      <description>ARM v7a, 32-bit build, assembly preload enabled</description>
+      <property>AndroidEnablePreloadAssemblies=True</property>
+    </run>
+
+    <run logTag="armeabi-v7a_preload_nocompression">
+      <summary>preload enabled; no compression; 32-bit build</summary>
+      <description>ARM v7a, 32-bit build, assembly preload enabled, compression disabled</description>
+      <property>AndroidEnablePreloadAssemblies=True</property>
+      <property>AndroidEnableAssemblyCompression=False</property>
+    </run>
+
+    <run logTag="armeabi-v7a_nopreload">
+      <summary>preload disabled; 32-bit build</summary>
+      <description>ARM v7a, 32-bit build, assembly preload disabled</description>
+      <property>AndroidEnablePreloadAssemblies=False</property>
+    </run>
+
+    <run logTag="armeabi-v7a_nopreload_nocompression">
+      <summary>preload disabled; no compression; 32-bit build</summary>
+      <description>ARM v7a, 32-bit build, assembly preload disabled, compression disabled</description>
+      <property>AndroidEnablePreloadAssemblies=False</property>
+      <property>AndroidEnableAssemblyCompression=False</property>
+    </run>
+
+    <run logTag="arm64-v8a_preload">
+      <summary>preload enabled; 64-bit build</summary>
+      <description>ARM v8a, 64-bit build, assembly preload enabled</description>
+      <property>AndroidEnablePreloadAssemblies=True</property>
+      <property>Enable64BitBuild=True</property>
+    </run>
+
+    <run logTag="arm64-v8a_preload_nocompression">
+      <summary>preload enabled; no compression; 64-bit build</summary>
+      <description>ARM v8a, 64-bit build, assembly preload enabled, compression disabled</description>
+      <property>AndroidEnablePreloadAssemblies=True</property>
+      <property>Enable64BitBuild=True</property>
+      <property>AndroidEnableAssemblyCompression=False</property>
+    </run>
+
+    <run logTag="arm64-v8a_nopreload">
+      <summary>preload disabled; 64-bit build</summary>
+      <description>ARM v8a, 64-bit build, assembly preload disabled</description>
+      <property>AndroidEnablePreloadAssemblies=False</property>
+      <property>Enable64BitBuild=True</property>
+      <property>UseMkbundle=True</property>
+    </run>
+
+    <run logTag="arm64-v8a_nopreload_nocompression">
+      <summary>preload disabled; no compression; 64-bit build</summary>
+      <description>ARM v8a, 64-bit build, assembly preload disabled, compression disabled</description>
+      <property>AndroidEnablePreloadAssemblies=False</property>
+      <property>Enable64BitBuild=True</property>
+      <property>AndroidEnableAssemblyCompression=False</property>
+    </run>
+  </runDefinitions>
+</xaptr>
