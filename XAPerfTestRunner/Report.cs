@@ -18,6 +18,8 @@ namespace XAPerfTestRunner
 			public string NativeToManaged = String.Empty;
 			public string TotalInit = String.Empty;
 			public string Displayed = String.Empty;
+			public string TotalBuildTime = String.Empty;
+			public string InstallTime = String.Empty;
 		}
 
 		sealed class ReportLineComparison : ReportLine
@@ -65,10 +67,19 @@ namespace XAPerfTestRunner
 			public ReportAverages BeforeTotalInit { get; }
 			public ReportAverages AfterTotalInit { get; }
 
+			public ReportAverages BeforeBuild { get; }
+
+			public ReportAverages AfterBuild { get; }
+
+			public ReportAverages BeforeInstall { get; }
+
+			public ReportAverages AfterInstall { get; }
+
 			public ComparisonData (RunDefinition before, RunDefinition after,
 			                       ReportAverages beforeDisplayed, ReportAverages afterDisplayed,
 			                       ReportAverages beforeNativeToManaged, ReportAverages afterNativeToManaged,
-			                       ReportAverages beforeTotalInit, ReportAverages afterTotalInit)
+			                       ReportAverages beforeTotalInit, ReportAverages afterTotalInit,
+			                       ReportAverages beforeBuild, ReportAverages afterBuild)
 			{
 				Before = before;
 				After = after;
@@ -81,6 +92,9 @@ namespace XAPerfTestRunner
 
 				BeforeTotalInit = beforeTotalInit;
 				AfterTotalInit = afterTotalInit;
+
+				BeforeBuild = beforeBuild;
+				AfterBuild = afterBuild;
 			}
 		}
 
@@ -137,7 +151,10 @@ namespace XAPerfTestRunner
 						afterNativeToManaged: new ReportAverages (two, reportTwo.RepetitionCount, SortNativeToManaged),
 
 						beforeTotalInit: new ReportAverages (one, reportOne.RepetitionCount, SortTotalInit),
-						afterTotalInit: new ReportAverages (two, reportTwo.RepetitionCount, SortTotalInit)
+						afterTotalInit: new ReportAverages (two, reportTwo.RepetitionCount, SortTotalInit),
+
+						beforeBuild: new ReportAverages (one, reportOne.RepetitionCount, SortBuild),
+						afterBuild: new ReportAverages (two, reportTwo.RepetitionCount, SortBuild)
 					)
 				);
 			}
@@ -151,6 +168,9 @@ namespace XAPerfTestRunner
 			var totalInitLinesAll = new List<ReportLineComparison> ();
 			var totalInitLinesNoOutliers = new List<ReportLineComparison> ();
 			var totalInitLinesNoSlowest = new List<ReportLineComparison> ();
+			var buildAndInstallLinesAll = new List<ReportLineComparison> ();
+			var buildAndInstallLinesNoOutliers = new List<ReportLineComparison> ();
+			var buildAndInstallLinesNoSlowest = new List<ReportLineComparison> ();
 
 			foreach (ComparisonData cdata in comparisons) {
 				string notes;
@@ -190,6 +210,16 @@ namespace XAPerfTestRunner
 				if (cdata.BeforeTotalInit.NoSlowest != null) {
 					totalInitLinesNoSlowest.Add (CreateComparisonLine (cdata.BeforeTotalInit.NoSlowest.TotalInit, cdata.AfterTotalInit.NoSlowest!.TotalInit, notes));
 				}
+
+				buildAndInstallLinesAll.Add (CreateComparisonLine (cdata.BeforeBuild.All.TotalBuildTime, cdata.AfterBuild.All.TotalBuildTime, notes));
+
+				if (cdata.BeforeBuild.NoOutliers != null) {
+					buildAndInstallLinesNoOutliers.Add (CreateComparisonLine (cdata.BeforeBuild.NoOutliers.TotalBuildTime, cdata.AfterBuild.NoOutliers!.TotalBuildTime, notes));
+				}
+
+				if (cdata.BeforeBuild.NoSlowest != null) {
+					buildAndInstallLinesNoSlowest.Add (CreateComparisonLine (cdata.BeforeBuild.NoSlowest.TotalBuildTime, cdata.AfterBuild.NoSlowest!.TotalBuildTime, notes));
+				}
 			}
 
 			displayedLinesAll.Sort (ComparePercentages);
@@ -203,6 +233,10 @@ namespace XAPerfTestRunner
 			totalInitLinesAll.Sort (ComparePercentages);
 			totalInitLinesNoOutliers.Sort (ComparePercentages);
 			totalInitLinesNoSlowest.Sort (ComparePercentages);
+
+			buildAndInstallLinesAll.Sort (ComparePercentages);
+			buildAndInstallLinesNoOutliers.Sort (ComparePercentages);
+			buildAndInstallLinesNoSlowest.Sort (ComparePercentages);
 
 			string reportFile = Path.Combine (resultsDir, Constants.ComparisonFileName);
 			using (var sw = new StreamWriter (reportFile, false, Utilities.UTF8NoBOM)) {
@@ -225,23 +259,37 @@ namespace XAPerfTestRunner
 					sw.WriteLine ();
 				}
 
-				sw.WriteLine ();
-				WriteHeading (sw, "Displayed");
-				WriteComparison (sw, "All runs", displayedLinesAll);
-				WriteComparison (sw, "Without slowest and fastest runs", displayedLinesNoOutliers);
-				WriteComparison (sw, "Without the slowest runs", displayedLinesNoSlowest);
+				if (displayedLinesAll.Any ()) {
+					sw.WriteLine ();
+					WriteHeading (sw, "Displayed");
+					WriteComparison (sw, "All runs", displayedLinesAll);
+					WriteComparison (sw, "Without slowest and fastest runs", displayedLinesNoOutliers);
+					WriteComparison (sw, "Without the slowest runs", displayedLinesNoSlowest);
+				}
 
-				sw.WriteLine ();
-				WriteHeading (sw, "Native to managed");
-				WriteComparison (sw, "All runs", nativeToManagedLinesAll);
-				WriteComparison (sw, "Without slowest and fastest runs", nativeToManagedLinesNoOutliers);
-				WriteComparison (sw, "Without the slowest runs", nativeToManagedLinesNoSlowest);
+				if (nativeToManagedLinesAll.Any ()) {
+					sw.WriteLine ();
+					WriteHeading (sw, "Native to managed");
+					WriteComparison (sw, "All runs", nativeToManagedLinesAll);
+					WriteComparison (sw, "Without slowest and fastest runs", nativeToManagedLinesNoOutliers);
+					WriteComparison (sw, "Without the slowest runs", nativeToManagedLinesNoSlowest);
+				}
 
-				sw.WriteLine ();
-				WriteHeading (sw, "Total init");
-				WriteComparison (sw, "All runs", totalInitLinesAll);
-				WriteComparison (sw, "Without slowest and fastest runs", totalInitLinesNoOutliers);
-				WriteComparison (sw, "Without the slowest runs", totalInitLinesNoSlowest);
+				if (totalInitLinesAll.Any ()) {
+					sw.WriteLine ();
+					WriteHeading (sw, "Total init");
+					WriteComparison (sw, "All runs", totalInitLinesAll);
+					WriteComparison (sw, "Without slowest and fastest runs", totalInitLinesNoOutliers);
+					WriteComparison (sw, "Without the slowest runs", totalInitLinesNoSlowest);
+				}
+
+				if (buildAndInstallLinesAll.Any ()) {
+					sw.WriteLine ();
+					WriteHeading (sw, "Build Times");
+					WriteComparison (sw, "All runs", buildAndInstallLinesAll);
+					WriteComparison (sw, "Without slowest and fastest runs", buildAndInstallLinesNoOutliers);
+					WriteComparison (sw, "Without the slowest runs", buildAndInstallLinesNoSlowest);
+				}
 
 				sw.Flush ();
 			}
@@ -319,10 +367,15 @@ namespace XAPerfTestRunner
 
 				sw.WriteLine ("# Results");
 				sw.WriteLine ($"## Averages (over {project.RepetitionCount} runs)");
-				DisplayedAverages (sw, project);
-				NativeToManagedAverages (sw, project);
-				TotalInitAverages (sw, project);
-				UnsortedAverages (sw, project);
+				if (project.Runs.Any (x => x.RunPerformanceTest)) {
+					DisplayedAverages (sw, project);
+					NativeToManagedAverages (sw, project);
+					TotalInitAverages (sw, project);
+					UnsortedAverages (sw, project);
+				}
+				if (project.Runs.Any (x=> x.RunBuildAndInstallProfiler)) {
+					DisplayBuildAverages (sw, project);
+				}
 
 				sw.Flush ();
 			}
@@ -357,12 +410,14 @@ namespace XAPerfTestRunner
 			sw.WriteLine ();
 
 			foreach (RunDefinition run in project.Runs) {
-				decimal nativeToManaged = 0, totalInit = 0, displayed = 0;
+				decimal nativeToManaged = 0, totalInit = 0, displayed = 0, totalBuildTime = 0, installTime = 0;
 				decimal count = run.Results.Count;
 				foreach (RunResults results in run.Results) {
 					nativeToManaged += results.NativeToManaged / count;
 					totalInit += results.TotalInit / count;
 					displayed += results.Displayed / count;
+					totalBuildTime += results.TotalBuildTime / count;
+					installTime += results.InstallTime / count;
 				}
 
 				reportLines.Add (
@@ -370,6 +425,8 @@ namespace XAPerfTestRunner
 						NativeToManaged = ToMilliseconds (nativeToManaged),
 						TotalInit = ToMilliseconds (totalInit),
 						Displayed = ToMilliseconds (displayed),
+						TotalBuildTime = ToMilliseconds (totalBuildTime),
+						InstallTime = ToMilliseconds (installTime),
 						Notes = run.Description,
 					}
 				);
@@ -379,6 +436,8 @@ namespace XAPerfTestRunner
 				new Column<ReportLinePerformance> ("Native to managed", rl => rl.NativeToManaged),
 				new Column<ReportLinePerformance> ("Total init", rl => rl.TotalInit),
 				new Column<ReportLinePerformance> ("Displayed", rl => rl.Displayed),
+				new Column<ReportLinePerformance> ("Total Build Time", rl => rl.TotalBuildTime),
+				new Column<ReportLinePerformance> ("Install Time", rl => rl.InstallTime),
 				new Column<ReportLinePerformance> ("Notes", rl => rl.Notes),
 			};
 
@@ -388,6 +447,22 @@ namespace XAPerfTestRunner
 		void SortDisplayed (List<RunResults> rl)
 		{
 			rl.Sort ((RunResults x, RunResults y) => x.Displayed.CompareTo (y.Displayed));
+		}
+
+		void SortBuild (List<RunResults> rl)
+		{
+			rl.Sort ((RunResults x, RunResults y) => x.TotalBuildTime.CompareTo (y.TotalBuildTime));
+		}
+
+		void DisplayBuildAverages (StreamWriter sw, Project project)
+		{
+				var columns = new List<Column<ReportLinePerformance>> {
+				new Column<ReportLinePerformance> ("Build", true, rl => rl.TotalBuildTime),
+				new Column<ReportLinePerformance> ("Install", rl => rl.InstallTime),
+				new Column<ReportLinePerformance> ("Notes", rl => rl.Notes),
+			};
+
+			Averages (sw, "Build and Install", project, columns, SortBuild);
 		}
 
 		void DisplayedAverages (StreamWriter sw, Project project)
@@ -501,6 +576,8 @@ namespace XAPerfTestRunner
 					rl.NativeToManaged = ToMilliseconds (average.NativeToManaged);
 					rl.TotalInit = ToMilliseconds (average.TotalInit);
 					rl.Displayed = ToMilliseconds (average.Displayed);
+					rl.TotalBuildTime = ToTimeStamp (average.TotalBuildTime);
+					rl.InstallTime = ToTimeStamp (average.InstallTime);
 					rl.Notes = average.Owner.Description;
 				}
 			}
@@ -566,6 +643,11 @@ namespace XAPerfTestRunner
 			decimal ms = ns / 1000000;
 
 			return ms.ToString (".000");
+		}
+
+		static string ToTimeStamp (decimal ms)
+		{
+			return TimeSpan.FromMilliseconds ((double)ms).ToString ();
 		}
 
 		static string ToPercent (decimal percent)

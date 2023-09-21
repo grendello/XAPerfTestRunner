@@ -15,6 +15,7 @@ namespace XAPerfTestRunner
 		public bool RunPerformanceTest { get; private set; }
 		public bool RunManagedProfiler { get; private set; }
 		public bool RunNativeProfiler { get; private set; }
+		public bool RunBuildAndInstallProfiler { get; private set; }
 		public List<string> Args { get; private set; }
 		public List<RunResults> Results { get; } = new List<RunResults> ();
 		public string? BinlogPath { get; set; }
@@ -49,6 +50,12 @@ namespace XAPerfTestRunner
 			else
 				RunNativeProfiler = Constants.DefaultRunNativeProfiler;
 
+			yesno = Utilities.FirstOf (runDefinition.RunBuildAndInstallProfiler, projectConfig.BuildAndInstallProfiler);
+			if (Utilities.ParseBoolean (yesno, ref b))
+				RunBuildAndInstallProfiler = b;
+			else
+				RunBuildAndInstallProfiler = Constants.DefaultRunBuildAndInstallProfiler;
+
 			Args = new List<string> ();
 			if (runDefinition.Properties.Count == 0)
 				return;
@@ -72,6 +79,7 @@ namespace XAPerfTestRunner
 			RunPerformanceTest = context.RunPerformanceTest.HasValue ? context.RunPerformanceTest.Value : Constants.DefaultRunPerformanceTest;
 			RunManagedProfiler = context.RunManagedProfiler.HasValue ? context.RunManagedProfiler.Value : Constants.DefaultRunManagedProfiler;
 			RunNativeProfiler = context.RunNativeProfiler.HasValue ? context.RunNativeProfiler.Value : Constants.DefaultRunNativeProfiler;
+			RunBuildAndInstallProfiler = context.RunBuildAndInstallProfiler.HasValue ? context.RunBuildAndInstallProfiler.Value : Constants.DefaultRunBuildAndInstallProfiler;
 			Args = new List<string> ();
 		}
 
@@ -86,6 +94,7 @@ namespace XAPerfTestRunner
 			writer.WriteAttributeString ("runPerformanceTest", GetBooleanString (RunPerformanceTest));
 			writer.WriteAttributeString ("runManagedProfiler", GetBooleanString (RunManagedProfiler));
 			writer.WriteAttributeString ("runNativeProfiler", GetBooleanString (RunNativeProfiler));
+			writer.WriteAttributeString ("runBuildAndInstallProfiler", GetBooleanString (RunBuildAndInstallProfiler));
 
 			writer.WriteStartElement ("description");
 			writer.WriteString (Description);
@@ -115,6 +124,8 @@ namespace XAPerfTestRunner
 				writer.WriteAttributeString ("nativeToManaged", results.NativeToManaged.ToString ());
 				writer.WriteAttributeString ("totalInit", results.TotalInit.ToString ());
 				writer.WriteAttributeString ("displayed", results.Displayed.ToString ());
+				writer.WriteAttributeString ("totalBuildTime", results.TotalBuildTime.ToString ());
+				writer.WriteAttributeString ("installTime", results.InstallTime.ToString ());
 
 				writer.WriteStartElement ("logcat");
 				writer.WriteAttributeString ("path", results.LogcatPath ?? String.Empty);
@@ -137,6 +148,7 @@ namespace XAPerfTestRunner
 			RunPerformanceTest = ReadBooleanAttribute (runNode, "runPerformanceTest", true);
 			RunManagedProfiler = ReadBooleanAttribute (runNode, "runManagedProfiler");
 			RunNativeProfiler = ReadBooleanAttribute (runNode, "runNativeProfiler");
+			RunBuildAndInstallProfiler = ReadBooleanAttribute (runNode, "runBuildAndInstallProfiler");
 
 			XmlNode? node = runNode.SelectSingleNode ("./description");
 			if (node == null)
@@ -167,6 +179,8 @@ namespace XAPerfTestRunner
 					NativeToManaged = ReadDecimalAttribute (resultNode, "nativeToManaged"),
 					TotalInit = ReadDecimalAttribute (resultNode, "totalInit"),
 					Displayed = ReadDecimalAttribute (resultNode, "displayed"),
+					TotalBuildTime = ReadDecimalAttribute (resultNode, "totalBuildTime"),
+					InstallTime = ReadDecimalAttribute (resultNode, "installTime"),
 				};
 
 				XmlNode? log = resultNode.SelectSingleNode ("./logcat");

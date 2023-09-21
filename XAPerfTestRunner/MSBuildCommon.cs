@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using SL = Microsoft.Build.Logging.StructuredLogger;
 
 namespace XAPerfTestRunner
 {
@@ -203,6 +205,32 @@ namespace XAPerfTestRunner
 					}
 				}
 			);
+		}
+
+		public decimal GetDurationFromBinLog (string logBasePath)
+		{
+			var build = SL.BinaryLog.ReadBuild ($"{logBasePath}.binlog");
+			var duration = build
+				.FindChildrenRecursive<SL.Project> ()
+				.Aggregate (TimeSpan.Zero, (duration, project) => duration + project.Duration);
+
+			if (duration == TimeSpan.Zero)
+				throw new InvalidDataException ($"No project build duration found in {logBasePath}.binlog");
+
+			return (decimal)duration.TotalMilliseconds;
+		}
+
+		public decimal GetTaskDurationFromBinLog (string logBasePath, string task)
+		{
+			var build = SL.BinaryLog.ReadBuild ($"{logBasePath}.binlog");
+			var duration = build
+				.FindChildrenRecursive<SL.Task> ()
+				.LastOrDefault ((t) => t.Name == task, new SL.Task ()).Duration;
+
+			if (duration == TimeSpan.Zero)
+				throw new InvalidDataException ($"No task {task} duration found in {logBasePath}.binlog");
+
+			return (decimal)duration.TotalMilliseconds;
 		}
 
 		protected override TextWriter CreateLogSink (string? logFilePath)

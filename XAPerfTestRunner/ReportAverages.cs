@@ -42,16 +42,22 @@ namespace XAPerfTestRunner
 						NoOutliers!.NativeToManaged += results.NativeToManaged / (count - 2);
 						NoOutliers.TotalInit += results.TotalInit / (count - 2);
 						NoOutliers.Displayed += results.Displayed / (count - 2);
+						NoOutliers.TotalBuildTime += results.TotalBuildTime / (count -2);
+						NoOutliers.InstallTime += results.InstallTime / (count -2);
 					}
 
 					NoSlowest!.NativeToManaged += results.NativeToManaged / (count - 1);
 					NoSlowest.TotalInit += results.TotalInit / (count - 1);
 					NoSlowest.Displayed += results.Displayed / (count - 1);
+					NoSlowest.TotalBuildTime += results.TotalBuildTime / (count -1);
+					NoSlowest.InstallTime += results.InstallTime / (count - 1);
 				}
 
 				All.NativeToManaged += results.NativeToManaged / count;
 				All.TotalInit += results.TotalInit / count;
 				All.Displayed += results.Displayed / count;
+				All.TotalBuildTime += results.TotalBuildTime / count;
+				All.InstallTime += results.InstallTime / count;
 			}
 		}
 	}

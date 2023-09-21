@@ -28,6 +28,7 @@ namespace XAPerfTestRunner
 		public const bool DefaultRunPerformanceTest = true;
 		public const bool DefaultRunManagedProfiler = false;
 		public const bool DefaultRunNativeProfiler = false;
+		public const bool DefaultRunBuildAndInstallProfiler = false;
 		public const bool DefaultCompare = false;
 		public const int PauseBetweenRunsMS = 500;
 

@@ -17,6 +17,7 @@ namespace XAPerfTestRunner
 		public string RunPerformanceTest { get; private set; } = String.Empty;
 		public string RunManagedProfiler { get; private set; } = String.Empty;
 		public string RunNativeProfiler { get; private set; } = String.Empty;
+		public string BuildAndInstallProfiler { get; private set; } = String.Empty;
 		public string Repetitions { get; private set; } = String.Empty;
 		public string PackagesDir { get; private set; } = String.Empty;
 		public bool ClearPackages { get; private set; } = true;

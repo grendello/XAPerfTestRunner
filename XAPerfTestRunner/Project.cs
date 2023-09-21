@@ -165,7 +165,7 @@ namespace XAPerfTestRunner
 				sb.Append ('-');
 				sb.Append (logTag);
 			}
-
+			
 			return sb.ToString ();
 		}
 
@@ -202,7 +202,7 @@ namespace XAPerfTestRunner
 			return androidInfo;
 		}
 
-		async Task<(bool, BuildInfo?)> BuildAndInstall (RunDefinition run)
+		async Task<(bool, BuildInfo?)> BuildAndInstall (RunDefinition run, uint runNum = 0, bool cleanFirst = true, bool saveResults = false)
 		{
 			if (projectUsesGit && projectGitCommit == null) {
 				(projectGitCommit, projectGitBranch) = await GetCommitHashAndBranch (FullProjectDirPath);
@@ -224,46 +224,70 @@ namespace XAPerfTestRunner
 			string binlogBasePath = String.Empty;
 			MSBuildCommon builder;
 			BuildInfo buildInfo;
+			RunResults results = new RunResults (run);
 
 			if (!usesDotnet) {
 				var msbuild = ConfigureRunner (new MSBuildRunner (context, buildCommand));
-				binlogBasePath = GetBinlogBasePath ("restore");
-				if (!await msbuild.Run (projectPath, binlogBasePath, "Restore", configuration, args)) {
+				binlogBasePath = GetBinlogBasePath ("clean", runNum);
+				if (cleanFirst) {
+					if (!await msbuild.Run (projectPath, binlogBasePath, "Clean", run.Configuration ?? configuration, args)) {
+						return (false, null);
+					}
+				}
+
+				binlogBasePath = GetBinlogBasePath ("restore", runNum);
+				if (!await msbuild.Run (projectPath, binlogBasePath, "Restore", run.Configuration ?? configuration, args)) {
 					return (false, null);
 				}
 
-				binlogBasePath = GetBinlogBasePath ("build");
+				binlogBasePath = GetBinlogBasePath ("build", runNum);
 				run.BinlogPath = GetRelativeBinlogPath (binlogBasePath);
 
-				if (!await msbuild.Run (projectPath, binlogBasePath, "SignAndroidPackage", configuration, args)) {
+				if (!await msbuild.Run (projectPath, binlogBasePath, "SignAndroidPackage",run.Configuration ??  configuration, args)) {
 					return (false, null);
 				}
+
+				results.TotalBuildTime = msbuild.GetDurationFromBinLog (binlogBasePath);
 
 				buildInfo = FindFirstAndroidBuildInfo (await msbuild.GetBuildInfo (binlogBasePath));
 				await Uninstall (buildInfo);
 
-				binlogBasePath = GetBinlogBasePath ("install");
-				if (!await msbuild.Run (projectPath, binlogBasePath, "Install", configuration, args)) {
+				binlogBasePath = GetBinlogBasePath ("install", runNum);
+				if (!await msbuild.Run (projectPath, binlogBasePath, "Install", run.Configuration ?? configuration, args)) {
 					return (false, null);
 				}
+
+				results.InstallTime = msbuild.GetDurationFromBinLog (binlogBasePath);
 
 				builder = msbuild;
 			} else {
 				var dotnet = ConfigureRunner (new DotnetRunner (context, buildCommand));
-				binlogBasePath = GetBinlogBasePath ("build");
-				run.BinlogPath = GetRelativeBinlogPath (binlogBasePath);
-				if (!await dotnet.Build (projectPath, binlogBasePath, configuration, args)) {
+				binlogBasePath = GetBinlogBasePath ("clean", runNum);
+				if (!await dotnet.Clean (projectPath, binlogBasePath, run.Configuration ?? configuration, args)) {
 					return (false, null);
 				}
+				binlogBasePath = GetBinlogBasePath ("build", runNum);
+				run.BinlogPath = GetRelativeBinlogPath (binlogBasePath);
+				if (!await dotnet.Build (projectPath, binlogBasePath, run.Configuration ?? configuration, args)) {
+					return (false, null);
+				}
+
+				results.TotalBuildTime = dotnet.GetDurationFromBinLog (binlogBasePath);
 
 				buildInfo = FindFirstAndroidBuildInfo (await dotnet.GetBuildInfo (binlogBasePath));
 				await Uninstall (buildInfo);
-				binlogBasePath = GetBinlogBasePath ("install");
-				if (!await dotnet.Install (projectPath, binlogBasePath, buildInfo.TargetFramework, configuration, args)) {
+				binlogBasePath = GetBinlogBasePath ("install", runNum);
+				if (!await dotnet.Install (projectPath, binlogBasePath, buildInfo.TargetFramework, run.Configuration ?? configuration, args)) {
 					return (false, null);
 				}
 
+				results.InstallTime = dotnet.GetDurationFromBinLog (binlogBasePath);
+
 				builder = dotnet;
+			}
+
+			if (saveResults) {
+				run.Results.Add (results);
 			}
 
 			if (xaVersionNotDetectedYet) {
@@ -299,9 +323,9 @@ namespace XAPerfTestRunner
 				return runner;
 			}
 
-			string GetBinlogBasePath (string phase)
+			string GetBinlogBasePath (string phase, uint runNum)
 			{
-				return GetLogBasePath (Constants.MSBuildLogDir, phase, run.LogTag, projectGitCommit, projectGitBranch);
+				return GetLogBasePath (Constants.MSBuildLogDir, phase, $"{run.LogTag}-{runNum:000}", projectGitCommit, projectGitBranch);
 			}
 
 			string GetRelativeBinlogPath (string binlogBasePath)
@@ -442,29 +466,38 @@ namespace XAPerfTestRunner
 		{
 			AndroidDeviceInfo? info = await adb.GetDeviceInfo ();
 			if (info == null) {
-				Log.FatalLine ("Failed to obtain Android device info");
-				return false;
+				Log.WarningLine ("Failed to obtain Android device info");
 			}
-			adi = info;
-			Log.InfoLabeled ("Device", adi.Model);
-			Log.InfoLabeled ("Device architecture", adi.Architecture);
-			Log.InfoLabeled ("Device SDK", adi.SdkVersion);
+			if (info != null) {
+				adi = info;
+				Log.InfoLabeled ("Device", adi.Model);
+				Log.InfoLabeled ("Device architecture", adi.Architecture);
+				Log.InfoLabeled ("Device SDK", adi.SdkVersion);
 
-			string timingMode = context.UseFastTiming ? "fast-bare" : "bare";
-			if (!await adb.SetPropertyValue ("debug.mono.log", $"default,timing={timingMode}")) {
-				Log.FatalLine ("Failed to set Mono debugging properties");
-				return false;
-			}
+				string timingMode = context.UseFastTiming ? "fast-bare" : "bare";
+				if (!await adb.SetPropertyValue ("debug.mono.log", $"default,timing={timingMode}")) {
+					Log.FatalLine ("Failed to set Mono debugging properties");
+					return false;
+				}
 
-			await SetGlobalSetting (adb, "window_animation_scale", "0");
-			await SetGlobalSetting (adb, "transition_animation_scale", "0");
-			await SetGlobalSetting (adb, "animator_duration_scale", "0");
+				await SetGlobalSetting (adb, "window_animation_scale", "0");
+				await SetGlobalSetting (adb, "transition_animation_scale", "0");
+				await SetGlobalSetting (adb, "animator_duration_scale", "0");
 
-			if (!await adb.SetLogcatBufferSize ("16M")) {
-				Log.WarningLine ("Failed to set logcat buffer size");
+				if (!await adb.SetLogcatBufferSize ("16M")) {
+					Log.WarningLine ("Failed to set logcat buffer size");
+				}
 			}
 
 			Utilities.CreateDirectory (FullDataDirectoryPath);
+
+			foreach (RunDefinition run in runs) {
+				if (run.RunBuildAndInstallProfiler) {
+					if (!await RunPerformanceTest (run, adb)) {
+						return false;
+					}
+				}
+			}
 
 			foreach (RunDefinition run in runs) {
 				if (run.RunPerformanceTest) {
@@ -539,8 +572,10 @@ namespace XAPerfTestRunner
 
 			Log.InfoLine ();
 			Log.InfoLine ($"[{run.Summary}] precompiling Java bits of the application");
-			if (!await adb.CompileForSpeed (packageName)) {
-				Log.WarningLine ("Precompilation failed, continuing regardless");
+			if (run.RunManagedProfiler | run.RunNativeProfiler | run.RunPerformanceTest) {
+				if (!await adb.CompileForSpeed (packageName)) {
+					Log.WarningLine ("Precompilation failed, continuing regardless");
+				}
 			}
 
 			string apkPath = GetLogBasePath (Constants.ApkDir, "package", $"{run.LogTag}{Path.GetExtension (androidInfo.PackageFilename)}", projectGitCommit, projectGitBranch);
@@ -549,39 +584,55 @@ namespace XAPerfTestRunner
 			for (uint i = 0; i < repetitionCount; i++) {
 				uint runNum = i + 1;
 				Log.InfoLine ($"  run {runNum} of {repetitionCount}");
-				if (!await adb.ClearLogcat ()) {
-					Log.WarningLine ("Failed to clear logcat buffer");
+				if (run.RunManagedProfiler | run.RunNativeProfiler | run.RunPerformanceTest) {
+					if (!await adb.ClearLogcat ()) {
+						Log.WarningLine ("Failed to clear logcat buffer");
+					}
 				}
 
-				Log.MessageLine ($"    running application");
-				if (!await adb.RunApp (packageName, activityName)) {
-					Log.FatalLine ($"[{run.Summary}] application failed");
-					return false;
+				if (run.RunBuildAndInstallProfiler) {
+					Log.MessageLine ($"    building.");
+					(bool result, BuildInfo? info) = await BuildAndInstall (run, runNum, saveResults: true);
+					if (!result) {
+						Log.FatalLine ($"[{run.Summary}] build failed");
+						return false;
+					}
 				}
 
-				if (context.UseFastTiming) {
-					Log.MessageLine ($"    asking Xamarin.Android to dump timing data");
-					if (!await adb.SendBroadcastIntent (packageName, "mono.android.app.DUMP_TIMING_DATA")) {
-						Log.WarningLine ("Failed to send timing dump broadcast");
+				if (run.RunManagedProfiler | run.RunNativeProfiler | run.RunPerformanceTest) {
+					Log.MessageLine ($"    running application");
+					if (!await adb.RunApp (packageName, activityName)) {
+						Log.FatalLine ($"[{run.Summary}] application failed");
+						return false;
+					}
+
+
+					if (context.UseFastTiming) {
+						Log.MessageLine ($"    asking Xamarin.Android to dump timing data");
+						if (!await adb.SendBroadcastIntent (packageName, "mono.android.app.DUMP_TIMING_DATA")) {
+							Log.WarningLine ("Failed to send timing dump broadcast");
+						}
 					}
 				}
 
 				Log.MessageLine ($"    pausing for {Constants.PauseBetweenRunsMS}ms");
 				Thread.Sleep (Constants.PauseBetweenRunsMS);
 
-				Log.MessageLine ($"    recording statistics");
-				string logcatPath = GetLogBasePath (Constants.DeviceLogDir, "logcat", $"{run.LogTag}-{runNum:000}.txt", projectGitCommit, projectGitBranch);
-				await adb.DumpLogcatToFile (logcatPath);
-				run.Results.Add (GetPerfDataFromLogcat (run, logcatPath, packageName, activityName));
+				if (run.RunManagedProfiler | run.RunNativeProfiler | run.RunPerformanceTest) {
+					Log.MessageLine ($"    recording statistics");
+					string logcatPath = GetLogBasePath (Constants.DeviceLogDir, "logcat", $"{run.LogTag}-{runNum:000}.txt", projectGitCommit, projectGitBranch);
+					await adb.DumpLogcatToFile (logcatPath);
+					run.Results.Add (GetPerfDataFromLogcat (run, logcatPath, packageName, activityName));
 
-				Log.MessageLine ($"    forcibly stopping application");
-				if (!await adb.ForceStop (packageName)) {
-					Log.WarningLine ("Failed to forcibly stop application");
-				}
+					Log.MessageLine ($"    forcibly stopping application");
+					if (!await adb.ForceStop (packageName)) {
+						Log.WarningLine ("Failed to forcibly stop application");
+					}
 
-				Log.MessageLine ($"    killing all app's background processes");
-				if (!await adb.Kill (packageName)) {
-					Log.WarningLine ("Failed to kill background processes");
+					Log.MessageLine ($"    killing all app's background processes");
+					if (!await adb.Kill (packageName)) {
+						Log.WarningLine ("Failed to kill background processes");
+					}
 				}
 			}
 			Log.MessageLine ();
