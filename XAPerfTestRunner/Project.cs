@@ -12,7 +12,7 @@ namespace XAPerfTestRunner
 	class Project
 	{
 		static readonly char[] TimingSplitChars = new char[]{ ':' };
-		static readonly Regex DisplayedRegex = new Regex ("^[\\s\\d\\w]*?:\\s\\+(?<val>\\d+s)?(?<ms>\\d+)ms", RegexOptions.Compiled);
+		static readonly Regex DisplayedRegex = new Regex ("^[\\s\\d\\w/.]*?:\\s\\+(?<val>\\d+s)?(?<ms>\\d+)ms", RegexOptions.Compiled);
 
 		readonly Context context;
 		readonly string runId;
@@ -601,7 +601,7 @@ namespace XAPerfTestRunner
 		{
 			const string NativeToManagedMarker = "Runtime.init: end native-to-managed transition; elapsed:";
 			const string TotalInitMarker = "Runtime.init: end, total time; elapsed:";
-			string DisplayedMarker = $"ActivityTaskManager: Displayed {packageName}/{activityName}";
+			string DisplayedMarker = $"Manager: Displayed {packageName}/{activityName}";
 
 			string? nativeToManaged = null;
 			string? totalInit = null;
