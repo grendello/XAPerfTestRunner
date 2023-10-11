@@ -10,6 +10,6 @@ namespace XAPerfTestRunner
 		public bool? RunPerformanceTest { get; set; }
 		public bool? RunManagedProfiler { get; set; }
 		public bool? RunNativeProfiler { get; set; }
-		public bool UseFastTiming { get; set; }
+		public bool UseFastTiming { get; set; } = true;
 	}
 }
