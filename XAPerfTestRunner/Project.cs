@@ -451,7 +451,7 @@ namespace XAPerfTestRunner
 			Log.InfoLabeled ("Device SDK", adi.SdkVersion);
 
 			string timingMode = context.UseFastTiming ? "fast-bare" : "bare";
-			if (!await adb.SetPropertyValue ("debug.mono.log", $"default,timing={timingMode}")) {
+			if (!await adb.SetPropertyValue ("debug.mono.log", $"timing={timingMode}")) {
 				Log.FatalLine ("Failed to set Mono debugging properties");
 				return false;
 			}
