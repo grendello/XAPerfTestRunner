@@ -6,6 +6,9 @@
   <configuration>Release</configuration>
   <repetitions>10</repetitions>
   <packagesDir clear="true">./packages</packagesDir>
+  <globalProperties>
+    <property>AndroidPackageFormat=aab</property>
+  </globalProperties>
   <runDefinitions>
     <run logTag="armeabi-v7a_preload">
       <summary>preload enabled; 32-bit build</summary>

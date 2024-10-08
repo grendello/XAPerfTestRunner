@@ -354,5 +354,25 @@ namespace XAPerfTestRunner
 				File.SetAttributes (file, FileAttributes.Normal);
 			}
 		}
+
+        public static void ReadProperties (XmlNodeList? propertyNodes, List<string> properties)
+        {
+            if (propertyNodes == null || propertyNodes.Count == 0) {
+                return;
+            }
+
+            foreach (XmlNode? p in propertyNodes) {
+				if (p == null) {
+					continue;
+                }
+
+				string property = p.InnerText.Trim ();
+				if (String.IsNullOrEmpty (property)) {
+					continue;
+                }
+
+				properties.Add (property);
+			}
+        }
 	}
 }

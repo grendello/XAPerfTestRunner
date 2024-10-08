@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>xaptr</AssemblyName>
     <Nullable>enable</Nullable>
     <LangVersion>10.0</LangVersion>
@@ -15,7 +15,7 @@
 	<Compile Remove="Windows/**" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Mono.Options" Version="6.6.0.161" />
-	<PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    <PackageReference Include="Mono.Options" Version="6.12.0.148" />
+	<PackageReference Include="Mono.Posix" Version="7.1.0-final.1.21458.1" />
   </ItemGroup>
 </Project>

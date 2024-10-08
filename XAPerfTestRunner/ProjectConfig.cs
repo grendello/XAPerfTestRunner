@@ -7,19 +7,20 @@ namespace XAPerfTestRunner
 {
 	class ProjectConfig
 	{
-		public string ConfigFilePath { get; }
-		public string ProjectFilePath { get; private set; } = String.Empty;
-		public string OutputDirectory { get; private set; } = String.Empty;
-		public string PackageName { get; private set; } = String.Empty;
-		public string Description { get; private set; } = String.Empty;
-		public string BuildCommand { get; private set; } = String.Empty;
-		public string Configuration { get; private set; } = String.Empty;
-		public string RunPerformanceTest { get; private set; } = String.Empty;
-		public string RunManagedProfiler { get; private set; } = String.Empty;
-		public string RunNativeProfiler { get; private set; } = String.Empty;
-		public string Repetitions { get; private set; } = String.Empty;
-		public string PackagesDir { get; private set; } = String.Empty;
-		public bool ClearPackages { get; private set; } = true;
+		public string ConfigFilePath         { get; }
+		public string ProjectFilePath        { get; private set; } = String.Empty;
+		public string OutputDirectory        { get; private set; } = String.Empty;
+		public string PackageName            { get; private set; } = String.Empty;
+		public string Description            { get; private set; } = String.Empty;
+		public string BuildCommand           { get; private set; } = String.Empty;
+		public string Configuration          { get; private set; } = String.Empty;
+		public string RunPerformanceTest     { get; private set; } = String.Empty;
+		public string RunManagedProfiler     { get; private set; } = String.Empty;
+		public string RunNativeProfiler      { get; private set; } = String.Empty;
+		public string Repetitions            { get; private set; } = String.Empty;
+		public string PackagesDir            { get; private set; } = String.Empty;
+		public bool ClearPackages            { get; private set; } = true;
+        public List<string> GlobalProperties { get; } = new List<string> ();
 
 		public List<ProjectConfigSingleRunDefinition> RunDefinitions { get; } = new List<ProjectConfigSingleRunDefinition> ();
 
@@ -106,6 +107,15 @@ namespace XAPerfTestRunner
 					ClearPackages = clear;
 				}
 			}
+
+            node = root.SelectSingleNode ("//globalProperties");
+            Utilities.ReadProperties (node?.SelectNodes ("./property"), GlobalProperties);
+            if (GlobalProperties.Count > 0) {
+                Log.InfoLine ($"Read {GlobalProperties.Count} global properties:");
+                foreach (string property in GlobalProperties) {
+                    Log.MessageLine ($"\t{property}");
+                }
+            }
 
 			XmlNodeList? runs = doc.SelectNodes ("//runDefinitions/run");
 			if (runs == null)

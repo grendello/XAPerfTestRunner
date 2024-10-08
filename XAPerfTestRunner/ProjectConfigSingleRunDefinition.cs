@@ -74,20 +74,7 @@ namespace XAPerfTestRunner
 				RunNativeProfiler = node.InnerText;
 			}
 
-			XmlNodeList? properties = run.SelectNodes ("./property");
-			if (properties == null || properties.Count == 0)
-				return;
-
-			foreach (XmlNode? p in properties) {
-				if (p == null)
-					continue;
-
-				string property = p.InnerText.Trim ();
-				if (String.IsNullOrEmpty (property))
-					continue;
-
-				Properties.Add (property);
-			}
+			Utilities.ReadProperties (run.SelectNodes ("./property"), Properties);
 		}
 	}
 }

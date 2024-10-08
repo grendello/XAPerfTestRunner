@@ -53,12 +53,23 @@ namespace XAPerfTestRunner
 			if (runDefinition.Properties.Count == 0)
 				return;
 
-			foreach (string p in runDefinition.Properties) {
-				if (String.IsNullOrEmpty (p))
-					continue;
+            AddPropertiesToArgs (projectConfig.GlobalProperties);
+			AddPropertiesToArgs (runDefinition.Properties);
 
-				Args.Add ($"/p:{p}");
-			}
+            void AddPropertiesToArgs (ICollection<string>? properties)
+            {
+                if (properties == null) {
+                    return;
+                }
+
+                foreach (string p in properties) {
+				    if (String.IsNullOrEmpty (p)) {
+					    continue;
+                    }
+
+				    Args.Add ($"/p:{p}");
+			    }
+            }
 		}
 
 		public RunDefinition (Context context)

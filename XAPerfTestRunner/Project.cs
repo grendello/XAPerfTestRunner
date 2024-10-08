@@ -14,6 +14,14 @@ namespace XAPerfTestRunner
 		static readonly char[] TimingSplitChars = new char[]{ ':' };
 		static readonly Regex DisplayedRegex = new Regex ("^[\\s\\d\\w/.]*?:\\s\\+(?<val>\\d+s)?(?<ms>\\d+)ms", RegexOptions.Compiled);
 
+		static readonly List<string> msbuildPathPropertyNames = new () {
+			"NetCoreRoot",
+			"NetCoreTargetingPackRoot",
+			"MSBuildToolsPath",
+			"CommonTargetsPath",
+			"TargetFrameworkRootPath",
+		};
+
 		readonly Context context;
 		readonly string runId;
 		readonly bool projectUsesGit;
@@ -310,22 +318,44 @@ namespace XAPerfTestRunner
 			}
 		}
 
+		string? TryToGetGitRootPath (Dictionary<string, string> msbuildProperties)
+		{
+			foreach (string property in msbuildPathPropertyNames) {
+				if (!msbuildProperties.TryGetValue (property, out string? path)) {
+					continue;
+				}
+
+				if (File.Exists (path)) {
+					return Path.GetDirectoryName (path);
+				}
+
+				if (Directory.Exists (path)) {
+					return path;
+				}
+			}
+
+			return null;
+		}
+
 		async Task<XAVersionInfo> GetXAVersion (MSBuildCommon msbuild, string binlogBasePath)
 		{
 			var neededProperties = new HashSet<string> (StringComparer.Ordinal) {
-				"TargetFrameworkRootPath",
-				"XamarinAnalysisTargetsFile",
 				"XamarinAndroidVersion",
+				"AndroidNETSdkVersion",
+				"XamarinAnalysisTargetsFile",
 			};
+			foreach (string neededProperty in msbuildPathPropertyNames) {
+				neededProperties.Add (neededProperty);
+			}
 
 			Dictionary<string, string> properties = await msbuild.GetPropertiesFromBinlog (binlogBasePath, neededProperties);
-			string? propertyValue;
+			string? propertyValue = TryToGetGitRootPath (properties);
 			string rootDir = String.Empty;
 			string branch = String.Empty;
 			string commit = String.Empty;
 			string gitRoot = String.Empty;
 
-			if (properties.TryGetValue ("TargetFrameworkRootPath", out propertyValue) && !String.IsNullOrEmpty (propertyValue)) {
+			if (!String.IsNullOrEmpty (propertyValue)) {
 				await GetGitInfo (propertyValue);
 			} else if (properties.TryGetValue ("XamarinAnalysisTargetsFile", out propertyValue) && !String.IsNullOrEmpty (propertyValue)) {
 				string toolsDir = Path.GetDirectoryName (propertyValue) ?? String.Empty;
@@ -357,7 +387,7 @@ namespace XAPerfTestRunner
 					return false;
 				}
 
-				(commit, branch) = await GetCommitHashAndBranch (propertyValue);
+				(commit, branch) = await GetCommitHashAndBranch (dir);
 				rootDir = gitRoot;
 				return true;
 			}
