@@ -23,7 +23,7 @@ namespace XAPerfTestRunner
 				{"p|perf", $"Run performance test (default: {parsedOptions.RunPerfTest})", v => parsedOptions.RunPerfTest = v == null ? false : true},
 				{"m|profile-managed", $"Profile managed portion of the app (default: {parsedOptions.RunManagedProfiler})", v => parsedOptions.RunManagedProfiler = v == null ? false : true},
 				{"n|profile-native", $"Profile native portion of the app (default: {parsedOptions.RunNativeProfiler})", v => parsedOptions.RunNativeProfiler = v == null ? false : true},
-				{"r|runs=", $"Number of runs for the performance test (default: {parsedOptions.RepetitionCount})", v => parsedOptions.RepetitionCount = ParseNumber (v, parsedOptions.RepetitionCount)},
+				{"r|runs=", $"Number of runs for the performance test (default: {parsedOptions.RepetitionCount})", v => parsedOptions.RepetitionCount = uint.Parse (v)},
 				{"f|fast-timing", $"Enable fast timing mode in Xamarin.Android, requires commit 1efa0cf46c9079fc06669a4434f597faf47504af, enabled by default", v => parsedOptions.UseFastTiming = v == null ? false : true},
 				{"no-fast-timing", $"Disable fast timing mode in Xamarin.Android", v => parsedOptions.UseFastTiming = false},
 				"",
@@ -172,17 +172,6 @@ namespace XAPerfTestRunner
 				return ret;
 
 			throw new InvalidOperationException ($"Unknown boolean value: {value}");
-		}
-
-		static T ParseNumber<T> (string value, T defaultValue = default(T)!)
-		{
-			switch (Type.GetTypeCode (typeof(T))) {
-				case TypeCode.UInt32:
-					return (T)((object)UInt32.Parse (value));
-
-				default:
-					throw new InvalidOperationException ($"Unsupported integer type {typeof(T)}");
-			}
 		}
 	}
 }
